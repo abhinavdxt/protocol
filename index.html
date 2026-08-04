@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#06060a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Protocol" />
+<title>The Protocol</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #06060a; }
+  body { -webkit-font-smoothing: antialiased; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- ============================================================= -->
+<!-- Firebase SDK (real-time sync). Loaded from Google's CDN.       -->
+<!-- ============================================================= -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<!-- ============================================================= -->
+<!--  ⬇⬇⬇  EDIT THE TWO BLOCKS BELOW  ⬇⬇⬇                          -->
+<!--  1) Paste your Firebase config (from the Firebase console)     -->
+<!--  2) Set a long, private SYNC_CODE (same on phone AND laptop)   -->
+<!--  Until you do, the app runs in "local only" mode and still     -->
+<!--  works perfectly — it just won't sync between devices yet.     -->
+<!-- ============================================================= -->
+<script>
+(function () {
+  // ---- 1) FIREBASE CONFIG ------------------------------------------------
+  var FIREBASE_CONFIG = {
+    apiKey:        "PASTE_YOUR_API_KEY",
+    authDomain:    "PASTE_YOUR_PROJECT.firebaseapp.com",
+    projectId:     "PASTE_YOUR_PROJECT_ID"
+    // storageBucket / messagingSenderId / appId are optional for Firestore
+  };
+
+  // ---- 2) SYNC CODE ------------------------------------------------------
+  // Make this long and private (like a password). Use the SAME value on
+  // every device you want to sync. Anyone with this code can see your data.
+  var SYNC_CODE = "CHANGE-ME-to-a-long-private-code";
+  // ------------------------------------------------------------------------
+
+
+  // ===== Nothing below here needs editing =================================
+  var configured =
+    FIREBASE_CONFIG.apiKey &&
+    FIREBASE_CONFIG.apiKey.indexOf("PASTE") === -1 &&
+    SYNC_CODE &&
+    SYNC_CODE.indexOf("CHANGE-ME") === -1;
+
+  var todayStr = function () { return new Date().toDateString(); };
+
+  // Normalize a stored blob + reset daily checks when the date rolls over.
+  function normalize(s) {
+    if (!s) return { date: todayStr(), checks: {}, weekly: {} };
+    var date = s.date || todayStr();
+    var checks = s.checks || {};
+    var weekly = s.weekly || {};
+    if (date !== todayStr()) { date = todayStr(); checks = {}; } // new day → reset dailies
+    return { date: date, checks: checks, weekly: weekly };
+  }
+
+  var state = { date: todayStr(), checks: {}, weekly: {} };
+  var subs = [];
+  var ready = false;
+  var persist = function () {};
+
+  function notify() { subs.slice().forEach(function (cb) { cb(state); }); }
+
+  var store = {
+    configured: configured,
+    mode: configured ? "firebase" : "local",
+    subscribe: function (cb) {
+      subs.push(cb);
+      if (ready) cb(state);
+      return function () { subs = subs.filter(function (x) { return x !== cb; }); };
+    },
+    toggleDaily: function (id) {
+      var c = Object.assign({}, state.checks); c[id] = !c[id];
+      state = { date: state.date, checks: c, weekly: state.weekly };
+      notify(); persist();
+    },
+    toggleWeekly: function (id) {
+      var w = Object.assign({}, state.weekly); w[id] = !w[id];
+      state = { date: state.date, checks: state.checks, weekly: w };
+      notify(); persist();
+    }
+  };
+  window.__store = store;
+
+  function startLocal() {
+    store.mode = "local";
+    var LS = "protocol-sync-state";
+    try { state = normalize(JSON.parse(localStorage.getItem(LS) || "null")); }
+    catch (e) { state = normalize(null); }
+    persist = function () {
+      try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {}
+    };
+    persist();
+    ready = true;
+    notify();
+  }
+
+  if (configured) {
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      var db = firebase.firestore();
+      try { db.enablePersistence({ synchronizeTabs: true }); } catch (e) {} // offline support
+      var ref = db.collection("protocol").doc(SYNC_CODE);
+
+      persist = function () {
+        ref.set(state, { merge: true }).catch(function (e) {
+          console.error("Protocol: save failed", e);
+        });
+      };
+
+      ref.onSnapshot(
+        function (snap) {
+          var raw = snap.exists ? snap.data() : null;
+          var norm = normalize(raw);
+          var needWrite = !raw || raw.date !== norm.date;
+          state = norm;
+          ready = true;
+          notify();
+          if (needWrite) persist(); // create doc / write the daily reset back
+        },
+        function (err) {
+          console.error("Protocol: sync error", err);
+          if (!ready) { ready = true; notify(); }
+        }
+      );
+
+      // Safety net: if we never hear back (offline, bad config), don't hang on "Loading".
+      setTimeout(function () { if (!ready) { ready = true; notify(); } }, 6000);
+    } catch (e) {
+      console.error("Protocol: Firebase init failed, falling back to local", e);
+      startLocal();
+    }
+  } else {
+    startLocal();
+  }
+})();
+</script>
+
+<!-- React + Babel (so the app can be written in JSX with no build step) -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/jsx-source" id="app-src">
+const { useState, useEffect } = React;
+
+const weekPlan = [
+  { day: "Monday", focus: "Chest + Triceps", tag: "Push day — build the shelf" },
+  { day: "Tuesday", focus: "Back + Biceps", tag: "Pull day — build the V" },
+  { day: "Wednesday", focus: "Shoulders + Arms", tag: "Cap the delts, fill the sleeves" },
+  { day: "Thursday", focus: "Chest + Arms Volume", tag: "Volume day — chase the pump" },
+  { day: "Friday", focus: "Legs (Maintenance)", tag: "Basketball handles legs — this is insurance" },
+  { day: "Saturday", focus: "Upper Pump", tag: "Everything upper, light and fast" },
+  { day: "Sunday", focus: "Rest", tag: "Recovery. Stretch. Walk. Sleep." },
+];
+
+const dayExercises = {
+  0: [
+    { name: "Decline Push-ups", sub: "Incline DB Press", target: "Upper chest", sets: "4×12-15", how: "Feet on bed/chair, hands on floor. Slow 3-sec lowering, explosive up. Higher feet = more upper chest." },
+    { name: "Standard Push-ups", sub: "Flat Bench Press", target: "Mid chest", sets: "4×15-20", how: "Hands shoulder-width, body rigid. Touch chest to floor. Backpack on for extra load." },
+    { name: "Wide Push-ups + Squeeze", sub: "Cable Flyes", target: "Inner chest", sets: "3×15", how: "Extra-wide hands. At top, squeeze pecs together 2 seconds. Feel the inner chest." },
+    { name: "Chair Dips", sub: "Tricep Dips", target: "Triceps", sets: "3×12-15", how: "Hands on chair behind you, feet forward. Lower until upper arms parallel. Backpack on lap for load." },
+    { name: "Bodyweight Skull Crushers", sub: "Skull Crushers", target: "Triceps", sets: "3×10", how: "Hands on desk edge, body at angle. Bend ONLY at elbows to lower forehead toward hands, extend back." },
+    { name: "Diamond Push-ups to Failure", sub: "Close-grip Bench", target: "Triceps + inner chest", sets: "3×max", how: "Hands together under chest. Elbows tight. Burnout finisher — go to absolute failure." },
+  ],
+  1: [
+    { name: "Door Pull-ups / Towel Rows", sub: "Pull-ups", target: "Lats width", sets: "4×max", how: "Sturdy door with towel over top, or wrap towel around pillar and lean-back row. Failure each set." },
+    { name: "Backpack Rows", sub: "Barbell Rows", target: "Mid back thickness", sets: "3×12", how: "Backpack 10-15kg. Bend 45°, row to belly. Squeeze shoulder blades 2 sec at top." },
+    { name: "Prone Y-T-W Raises", sub: "Face Pulls", target: "Rear delts + posture", sets: "3×10 each", how: "Face down on bed. Y arms, hold 2s. T arms, hold 2s. W arms, hold 2s. One set = all three." },
+    { name: "Backpack Curls", sub: "Barbell Curls", target: "Biceps", sets: "3×12", how: "Grip backpack, curl it. 3-sec negative every rep — the lowering phase builds biceps." },
+    { name: "Towel Curl Isometrics", sub: "Hammer Curls", target: "Brachialis", sets: "3×30s hold", how: "Stand on towel, grip both ends, curl halfway and HOLD. 30 seconds of burn." },
+    { name: "Reverse Snow Angels", sub: "Rear Delt Flyes", target: "Rear delts", sets: "3×15", how: "Face down, sweep arms overhead like snow angel. Squeeze shoulder blades entire time." },
+  ],
+  2: [
+    { name: "Pike Push-ups", sub: "Overhead Press", target: "Front delts", sets: "4×10-12", how: "Hands on floor, feet on floor, hips HIGH. Lower head between hands. Feet on chair = harder." },
+    { name: "Lateral Raises (bottles/bags)", sub: "Lateral Raises", target: "Side delts (V-taper)", sets: "4×20", how: "Filled water bottles or bags. Raise to shoulder height. 3-sec descent. High reps = side delt growth." },
+    { name: "Reverse Snow Angels", sub: "Rear Delt Flyes", target: "Rear delts", sets: "3×15", how: "Face down, arms sweep overhead. Thumbs up. Squeeze upper back hard." },
+    { name: "Close-grip Push-ups", sub: "Close-grip Bench", target: "Triceps", sets: "3×12", how: "Hands inside shoulder width, elbows tucked to ribs. All effort through triceps." },
+    { name: "Backpack Overhead Extension", sub: "Overhead Tricep Ext", target: "Long head triceps", sets: "3×12", how: "Backpack behind head, both hands. Extend overhead. Elbows forward and close to head." },
+    { name: "Backpack Curls (lean-back)", sub: "Incline Curls", target: "Biceps (stretched)", sets: "3×12", how: "Sit on bed edge, lean back. Curl from stretched position — lean-back makes biceps work harder." },
+  ],
+  3: [
+    { name: "Standard Push-ups (high rep)", sub: "DB Squeeze Press", target: "Chest pump", sets: "3×20", how: "Squeeze chest at top of every rep. Backpack on if easy. Volume day = more reps." },
+    { name: "Push-ups to Failure", sub: "—", target: "Chest burnout", sets: "3 sets max", how: "Absolute max reps × 3 sets. 60 sec rest. Track total — beat it next week." },
+    { name: "Floor Flyes (towels)", sub: "Cable Crossovers", target: "Chest stretch", sets: "3×12", how: "Smooth floor, hands on towels. Slide wide (control!), slide back squeezing. Brutal." },
+    { name: "Backpack Preacher Curls", sub: "Preacher Curls", target: "Biceps peak", sets: "3×12", how: "Lean arm over pillow on bed edge. Curl with zero body swing — pure isolation." },
+    { name: "Chair Dips (high rep)", sub: "Tricep Pushdowns", target: "Triceps pump", sets: "3×15", how: "Higher reps than Monday. Feet elevated on another chair if easy." },
+    { name: "Curl + Diamond Push-up Superset", sub: "—", target: "Arm finisher", sets: "3 rounds", how: "10 curls → max diamond push-ups. No rest between. 60 sec between rounds. Arms should be screaming." },
+  ],
+  4: [
+    { name: "Bodyweight Squats", sub: "Barbell Squats", target: "Quads + glutes", sets: "3×20", how: "Deep as possible. Knees track over toes, don't cave in. Push through heels. Backpack for load." },
+    { name: "Bulgarian Split Squats", sub: "Leg Press", target: "Quads (single leg)", sets: "3×12 each", how: "Rear foot on bed/chair. Lower front thigh to parallel. Bodyweight alone is plenty hard." },
+    { name: "Single-leg RDL", sub: "Romanian Deadlift", target: "Hamstrings", sets: "3×12 each", how: "One leg, hinge forward, back straight. Feel hamstring stretch. Hold backpack for load." },
+    { name: "Single-leg Calf Raises", sub: "Machine Calf Raises", target: "Calves", sets: "4×20 each", how: "Edge of stair, one foot. Lower heel BELOW step, raise HIGH. Full range = full calves." },
+    { name: "Glute Bridge March", sub: "—", target: "Glute activation", sets: "3×20", how: "Hold bridge, alternate lifting feet 2 inches like marching. Keep hips level." },
+  ],
+  5: [
+    { name: "Decline Push-ups (light)", sub: "Incline Press", target: "Upper chest", sets: "3×12", how: "Pump day — focus on squeeze, not grinding. Controlled tempo." },
+    { name: "Lateral Raises (high rep)", sub: "Lateral Raises", target: "Side delts", sets: "4×20", how: "Light, crazy reps. Chase the burn. Side delts need volume over weight." },
+    { name: "Underhand Towel Rows", sub: "Chin-ups", target: "Lats + biceps", sets: "3×max", how: "Underhand grip on towel rows — shifts emphasis to biceps. Or underhand door pull-ups." },
+    { name: "Push-up Circuit", sub: "—", target: "Full chest + tris", sets: "3 rounds", how: "10 wide + 10 standard + 10 diamond. No rest between. 60 sec between rounds." },
+    { name: "Curl + Extension Superset", sub: "—", target: "Arm pump", sets: "3 rounds", how: "12 curls straight into 12 overhead extensions, same backpack. Pure pump." },
+    { name: "Y-T-W + Doorway Stretch", sub: "—", target: "Posture finisher", sets: "2 rounds", how: "Y-T-W raises → immediately doorway stretch 30 sec. Always end Saturday with this." },
+  ],
+  6: []
+};
+
+const alwaysDo = [
+  { group: "🦵 Knee Correction (daily)", items: [
+    { name: "Clamshells", sets: "3×20 each", how: "Side-lying, knees bent 90°, feet together. Open top knee slowly — 2 sec up, 2 sec down." },
+    { name: "Single-leg Glute Bridge", sets: "3×12 each", how: "One foot flat, other leg straight up. Drive hips up, squeeze glute, 2 sec hold at top." },
+    { name: "Wall Sit", sets: "3×30-45s", how: "Back on wall, thighs parallel. Push knees OUT — don't let them cave." },
+    { name: "Side-lying Leg Raises", sets: "3×15 each", how: "Top leg straight, toe turned slightly DOWN. Raise slowly. Feel it in outer glute." },
+    { name: "Step-downs off Stair", sets: "3×10 each", how: "One leg on step, slowly lower other foot — 3 sec descent. Builds VMO for knee stability." },
+  ]},
+  { group: "🧍 Posture (daily)", items: [
+    { name: "Chin Tucks", sets: "3×15 (5s hold)", how: "Pull chin straight back, double chin. Hold 5 sec each. Perfect during study breaks." },
+    { name: "Doorway Chest Stretch", sets: "3×30s", how: "Arms on doorframe at 90°, lean forward. Stretches chest and front delts." },
+    { name: "Prone Y-T-W Raises", sets: "3×10 each", how: "Face down on bed. Y up 2s, T out 2s, W back 2s. Builds the muscles that pull shoulders back." },
+  ]},
+];
+
+const dailyChecklist = [
+  { group: "Morning", items: [
+    { id: "bball", label: "Basketball — 1 hour", t: "6:15" },
+    { id: "lift", label: "Today's workout (see Workout tab)", t: "7:15" },
+    { id: "knee", label: "Knee correction exercises", t: "7:45" },
+    { id: "shower", label: "Shower + fibers + light spray", t: "7:50" },
+    { id: "skinam", label: "Skincare AM — wash → Vit C → SPF → eye serum", t: "8:05" },
+    { id: "meal1", label: "Meal 1 (eggs + chicken/paneer + veggies)", t: "8:10" },
+  ]},
+  { group: "Study & Afternoon", items: [
+    { id: "nback", label: "Dual N-Back — 20 min", t: "8:15" },
+    { id: "study1", label: "Deep study block (hardest material)", t: "8:35" },
+    { id: "chin", label: "Chin tucks during break — 3×15", t: "—" },
+    { id: "shake", label: "Protein shake + 5g creatine", t: "12:30" },
+    { id: "math", label: "Mental math — 5 min", t: "12:45" },
+    { id: "study2", label: "Study block 2 (Anki + lighter)", t: "1:00" },
+    { id: "water3", label: "3L water by now ✓", t: "3:00" },
+  ]},
+  { group: "Evening", items: [
+    { id: "meal2", label: "Meal 2 (chicken/fish + salad + dal)", t: "4:00" },
+    { id: "study3", label: "Study block 3 (practice problems)", t: "4:30" },
+    { id: "cardio", label: "Cycling or bodyweight HIIT — 30 min", t: "7:00" },
+    { id: "meal3", label: "Meal 3 — yogurt/paneer (if needed)", t: "8:00" },
+    { id: "skinpm", label: "Skincare PM — wash → niacinamide → moisturizer", t: "9:00" },
+    { id: "beard", label: "Beard oil + brush", t: "9:05" },
+    { id: "body", label: "Body moisturize + bio-oil on stomach", t: "9:10" },
+    { id: "journal", label: "First-principles journal — 10 min", t: "10:00" },
+    { id: "minox", label: "Minoxidil on scalp", t: "10:15" },
+    { id: "water4", label: "4L water total ✓", t: "—" },
+    { id: "sleep", label: "Lights out by 10:30", t: "10:30" },
+  ]},
+  { group: "Weekly Tasks", items: [
+    { id: "w1", label: "AHA/BHA exfoliant — session 1", t: "" },
+    { id: "w2", label: "AHA/BHA exfoliant — session 2", t: "" },
+    { id: "w3", label: "Sheet mask", t: "" },
+    { id: "w4", label: "Clarifying shampoo deep clean", t: "" },
+    { id: "w5", label: "Eyebrow check / threading", t: "" },
+    { id: "w6", label: "Body composition scan (watch)", t: "" },
+    { id: "w7", label: "Tape measurements", t: "" },
+    { id: "w8", label: "Nails trimmed + clean", t: "" },
+  ]},
+];
+
+const shoppingList = [
+  { cat: "💊 Supplements", items: [
+    { n: "Creatine Monohydrate", pick: "Any '100% Creatine Monohydrate' — Asitis/Fast&Up", p: "₹350-450", api: "Same molecule everywhere. Purity > brand." },
+    { n: "Whey Protein 1kg", pick: "Asitis Whey Concentrate — lab tested", p: "₹1,800-2,200", api: "Whey Concentrate/Isolate — >24g protein/scoop." },
+    { n: "Fish Oil Omega-3", pick: "HK Vitals — check 500mg+ DHA", p: "₹250-350", api: "EPA + DHA mg per capsule is what matters." },
+    { n: "Multivitamin", pick: "Zingavita or Healthvit", p: "₹200-300", api: "Standard vitamin-mineral complex." },
+    { n: "Biotin 10,000mcg", pick: "HK Vitals Biotin", p: "₹200", api: "D-Biotin (Vitamin B7) — identical everywhere." },
+  ]},
+  { cat: "✨ Skincare", items: [
+    { n: "Gentle Face Wash", pick: "Simple Kind to Skin / Cetaphil", p: "₹200-350", api: "Mild surfactants, no SLS." },
+    { n: "Vitamin C Serum 10%", pick: "Minimalist or Derma Co 10%", p: "₹250-400", api: "L-Ascorbic Acid only. Skip derivatives." },
+    { n: "Sunscreen SPF 50", pick: "Minimalist / Re'equil SPF 50", p: "₹350-400", api: "UV filters — SPF 30+ threshold." },
+    { n: "Niacinamide 10%", pick: "Minimalist 10% Niacinamide", p: "₹300-350", api: "Vitamin B3 at 10% — pores + tone." },
+    { n: "Moisturizer", pick: "Cetaphil DAM / Minimalist", p: "₹250-350", api: "Ceramides + HA — barrier repair." },
+    { n: "Retinol (Week 5+)", pick: "Minimalist 0.3% Retinol", p: "₹350-400", api: "Vitamin A — PM only, start low." },
+    { n: "Eye Serum", pick: "mCaffeine Under Eye", p: "₹250-300", api: "Caffeine — reduces puffiness." },
+    { n: "AHA/BHA Exfoliant", pick: "Minimalist 2% Salicylic Acid", p: "₹300-350", api: "Salicylic Acid 2% — unclogs pores." },
+  ]},
+  { cat: "💇 Hair", items: [
+    { n: "Minoxidil 5%", pick: "Morr-F 5% or Tugain 5%", p: "₹300-400", api: "Same minoxidil. Morr-F adds Finasteride." },
+    { n: "Sulfate-free Shampoo", pick: "Re'equil Anti Hair Fall", p: "₹350-400", api: "No SLS/SLES stripping." },
+    { n: "Scalp Serum", pick: "Minimalist Salicylic Acid 2%", p: "₹300", api: "Unclogs follicles from fiber buildup." },
+    { n: "Light Hairspray", pick: "Any light-hold spray", p: "₹100-150", api: "Less stress on thin hair than stronghold." },
+    { n: "Satin Pillowcase", pick: "Any satin on Amazon", p: "₹200-300", api: "Smooth = less friction = less breakage." },
+  ]},
+  { cat: "🧔 Grooming", items: [
+    { n: "Beard Oil", pick: "DIY: Jojoba + Tea Tree drops", p: "₹150-200", api: "Carrier oil is all that matters." },
+    { n: "Beard Trimmer", pick: "Havells or Nova", p: "₹600-800", api: "Blade quality > brand." },
+    { n: "Boar Bristle Brush", pick: "Any boar bristle brush", p: "₹150-200", api: "Natural bristle tames without static." },
+    { n: "Bio-Oil / Cocoa Butter", pick: "Palmer's Cocoa Butter", p: "₹200-250", api: "Emollients + Vit E for stretch marks." },
+  ]},
+  { cat: "🏠 Room Equipment", items: [
+    { n: "Resistance Band Set", pick: "Any loop set on Amazon", p: "₹200-300", api: "Latex/rubber — tension is tension." },
+    { n: "Yoga Mat 6mm", pick: "Any 4-6mm EVA mat", p: "₹200-300", api: "Thickness for knee comfort." },
+    { n: "Heavy Backpack", pick: "Your backpack + old books", p: "₹0", api: "Gravity doesn't check the brand." },
+  ]},
+];
+
+const c = { bg:"#06060a",s1:"#111118",s2:"#1a1a24",br:"#252535",tx:"#e4e4ec",dm:"#6e6e82",ac:"#b8f035",acd:"rgba(184,240,53,0.1)",rd:"#f05050",or:"#f0a030",gn:"#40c880" };
+
+function Chk(){return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke={c.bg} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+function Chev({open}){return <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{transform:open?"rotate(180deg)":"none",transition:"0.2s"}}><path d="M4 6L8 10L12 6" stroke={c.dm} strokeWidth="2" strokeLinecap="round"/></svg>}
+
+function App(){
+  const[tab,setTab]=useState("today");
+  const[st,setSt]=useState(null);
+  const[openEx,setOpenEx]=useState(null);
+
+  useEffect(()=>window.__store.subscribe(setSt),[]);
+
+  const jsDay=new Date().getDay();
+  const di=jsDay===0?6:jsDay-1;
+  const today=weekPlan[di];
+  const todayEx=dayExercises[di]||[];
+  const isRest=di===6;
+
+  if(!st)return<div style={{background:c.bg,color:c.dm,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui"}}>Loading…</div>;
+
+  const checks=st.checks||{};
+  const wChecks=st.weekly||{};
+  const tog=(id)=>window.__store.toggleDaily(id);
+  const togW=(id)=>window.__store.toggleWeekly(id);
+  const synced=window.__store.mode==="firebase";
+
+  const allC={...checks,...wChecks};
+  const allI=dailyChecklist.flatMap(g=>g.items);
+  const done=allI.filter(i=>allC[i.id]).length;
+  const pct=Math.round((done/allI.length)*100);
+  const daysLeft=Math.max(0,Math.ceil((new Date("2026-09-28")-new Date())/86400000));
+
+  return(
+    <div style={{background:c.bg,color:c.tx,minHeight:"100vh",fontFamily:"-apple-system,system-ui,sans-serif",maxWidth:500,margin:"0 auto",paddingBottom:60}}>
+      {/* Header */}
+      <div style={{textAlign:"center",padding:"20px 16px 4px"}}>
+        <div style={{fontSize:22,fontWeight:800,letterSpacing:-0.5}}>THE PROTOCOL</div>
+        <div style={{fontSize:10,marginTop:4,color:synced?c.gn:c.or,letterSpacing:0.5}}>
+          {synced?"● Synced across devices":"● Local only — add Firebase config to sync"}
+        </div>
+        <div style={{display:"flex",justifyContent:"center",gap:28,padding:"12px 0"}}>
+          <div style={{textAlign:"center"}}><div style={{fontSize:36,fontWeight:800,color:c.ac,lineHeight:1}}>{daysLeft}</div><div style={{fontSize:9,color:c.dm,textTransform:"uppercase",letterSpacing:2,marginTop:2}}>Days Left</div></div>
+          <div style={{textAlign:"center"}}><div style={{fontSize:36,fontWeight:800,lineHeight:1}}>86</div><div style={{fontSize:9,color:c.dm,textTransform:"uppercase",letterSpacing:2,marginTop:2}}>Target KG</div></div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,padding:"6px 12px",position:"sticky",top:0,background:c.bg,zIndex:10,borderBottom:`1px solid ${c.br}`}}>
+        {[["today","✅ Today"],["workout","💪 Workout"],["shop","🛒 Shop"]].map(([k,l])=>(
+          <div key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"10px 4px",borderRadius:10,background:tab===k?c.ac:c.s1,color:tab===k?c.bg:c.dm,fontWeight:tab===k?700:500,fontSize:12,border:`1px solid ${tab===k?c.ac:c.br}`,cursor:"pointer",textAlign:"center"}}>{l}</div>
+        ))}
+      </div>
+
+      {/* TODAY TAB */}
+      {tab==="today"&&<div>
+        <div style={{background:c.acd,border:"1px solid rgba(184,240,53,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
+          <div style={{fontSize:18,fontWeight:800,color:c.ac}}>{today.day} — {today.focus}</div>
+          <div style={{fontSize:12,color:c.dm,marginTop:2}}>{today.tag}</div>
+        </div>
+        <div style={{height:5,background:c.s2,borderRadius:3,margin:"0 16px",overflow:"hidden"}}><div style={{height:"100%",background:`linear-gradient(90deg,${c.ac},${c.gn})`,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
+        <div style={{textAlign:"right",padding:"4px 16px 8px",fontSize:11,color:c.dm}}>{done}/{allI.length} — {pct}%</div>
+
+        {dailyChecklist.map(g=>(
+          <div key={g.group} style={{padding:"0 12px",marginBottom:10}}>
+            <div style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:12,overflow:"hidden"}}>
+              <div style={{padding:"8px 14px",background:c.s2,fontSize:11,fontWeight:700,letterSpacing:1.5,color:c.ac,textTransform:"uppercase"}}>{g.group}</div>
+              {g.items.map(item=>{
+                const isW=item.id.startsWith("w");const on=isW?wChecks[item.id]:checks[item.id];const fn=isW?togW:tog;
+                return(
+                  <div key={item.id} onClick={()=>fn(item.id)} style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:`1px solid ${c.br}`,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                    <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?c.ac:c.br}`,background:on?c.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginRight:10}}>{on&&<Chk/>}</div>
+                    <span style={{flex:1,fontSize:13,color:on?c.dm:c.tx,textDecoration:on?"line-through":"none"}}>{item.label}</span>
+                    {item.t&&<span style={{fontSize:11,color:c.dm,marginLeft:8,flexShrink:0}}>{item.t}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>}
+
+      {/* WORKOUT TAB */}
+      {tab==="workout"&&<div>
+        <div style={{background:c.acd,border:"1px solid rgba(184,240,53,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
+          <div style={{fontSize:18,fontWeight:800,color:c.ac}}>{today.focus}</div>
+          <div style={{fontSize:12,color:c.dm,marginTop:2}}>{isRest?"Rest day — still do knee + posture below":"Do these in order. Tap for form guide."}</div>
+        </div>
+
+        {!isRest&&<div style={{padding:"0 12px"}}>
+          <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:c.dm,marginBottom:8}}>Today's Exercises</div>
+          {todayEx.map((ex,i)=>{const k=`m${i}`;const o=openEx===k;return(
+            <div key={k} style={{background:c.s1,border:`1px solid ${o?c.ac:c.br}`,borderRadius:12,marginBottom:8,overflow:"hidden"}}>
+              <div onClick={()=>setOpenEx(o?null:k)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",cursor:"pointer"}}>
+                <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,marginBottom:1}}><span style={{color:c.ac,marginRight:6}}>{i+1}.</span>{ex.name}</div><div style={{fontSize:11,color:c.ac}}>{ex.target}</div></div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:12,fontWeight:700,color:c.ac}}>{ex.sets}</span><Chev open={o}/></div>
+              </div>
+              {ex.sub!=="—"&&<div style={{fontSize:11,color:c.or,padding:"0 14px 6px"}}>Gym equiv: {ex.sub}</div>}
+              {o&&<div style={{padding:"10px 14px",background:c.s2,borderTop:`1px solid ${c.br}`,fontSize:13,lineHeight:1.6}}>{ex.how}</div>}
+            </div>
+          );})}
+        </div>}
+
+        {alwaysDo.map(sec=>(
+          <div key={sec.group} style={{padding:"0 12px",marginTop:16}}>
+            <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:c.dm,marginBottom:8}}>{sec.group}</div>
+            {sec.items.map((ex,i)=>{const k=`${sec.group}-${i}`;const o=openEx===k;return(
+              <div key={k} style={{background:c.s1,border:`1px solid ${o?c.ac:c.br}`,borderRadius:12,marginBottom:8,overflow:"hidden"}}>
+                <div onClick={()=>setOpenEx(o?null:k)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",cursor:"pointer"}}>
+                  <div style={{flex:1,fontSize:14,fontWeight:600}}>{ex.name}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:12,fontWeight:700,color:c.ac}}>{ex.sets}</span><Chev open={o}/></div>
+                </div>
+                {o&&<div style={{padding:"10px 14px",background:c.s2,borderTop:`1px solid ${c.br}`,fontSize:13,lineHeight:1.6}}>{ex.how}</div>}
+              </div>
+            );})}
+          </div>
+        ))}
+
+        {isRest&&<div style={{textAlign:"center",padding:"40px 16px",color:c.dm}}>
+          <div style={{fontSize:40,marginBottom:12}}>🛌</div>
+          <div style={{fontSize:14}}>No lifting today. Stretch, walk, sleep well.</div>
+          <div style={{fontSize:12,marginTop:8}}>Still do knee correction + posture above.</div>
+        </div>}
+      </div>}
+
+      {/* SHOP TAB */}
+      {tab==="shop"&&<div>
+        <div style={{background:"rgba(64,200,128,0.08)",border:"1px solid rgba(64,200,128,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
+          <div style={{fontSize:18,fontWeight:800,color:c.gn}}>₹7,000–10,000 total</div>
+          <div style={{fontSize:12,color:c.dm,marginTop:2}}>One-time setup — recurring: whey + creatine ~₹2,200/mo</div>
+        </div>
+        {shoppingList.map(cat=>(
+          <div key={cat.cat} style={{padding:"0 12px",marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:c.dm,marginBottom:8}}>{cat.cat}</div>
+            {cat.items.map((item,i)=>(
+              <div key={i} style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:10,padding:"10px 14px",marginBottom:8}}>
+                <div style={{fontSize:13,fontWeight:700}}>{item.n}</div>
+                <div style={{fontSize:12,color:c.ac,marginTop:3}}>{item.pick}</div>
+                <div style={{fontSize:12,fontWeight:700,color:c.gn,marginTop:2}}>{item.p}</div>
+                <div style={{fontSize:11,color:c.dm,marginTop:6,fontStyle:"italic",lineHeight:1.4,paddingTop:6,borderTop:`1px solid ${c.br}`}}>{item.api}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>}
+
+      <div style={{textAlign:"center",padding:"24px 0",fontSize:10,color:c.dm,letterSpacing:2,textTransform:"uppercase"}}>
+        100.4 → 86 — <span style={{color:c.ac}}>The Protocol</span>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+<!-- Compile the JSX above with the CLASSIC runtime (uses React.createElement, no imports) -->
+<script>
+(function () {
+  try {
+    var src = document.getElementById("app-src").textContent;
+    var out = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
+    (0, eval)(out);
+  } catch (e) {
+    console.error("Protocol: app failed to compile/run", e);
+    document.getElementById("root").innerHTML =
+      '<div style="color:#f05050;font-family:system-ui;padding:24px;font-size:14px;line-height:1.5">App failed to load:<br>' +
+      (e && e.message ? e.message : e) + '</div>';
+  }
+})();
+</script>
+</body>
+</html>
