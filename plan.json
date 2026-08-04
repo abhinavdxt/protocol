@@ -1,0 +1,34 @@
+{
+  "updated": "Tue 4 Aug, 7:00 AM",
+  "term": "XLRI Term IV · Sec E · B25349",
+  "exams": [
+    {
+      "name": "PJM Mid-Term",
+      "date": "2026-08-06",
+      "dateLabel": "Thu 6 Aug",
+      "time": "6:15–7:45 AM",
+      "type": "mid-term",
+      "block": "Wed 5 Aug · 2:30–6:30 PM",
+      "blockDate": "2026-08-05"
+    },
+    {
+      "name": "CNB Quiz",
+      "date": "2026-08-10",
+      "dateLabel": "Mon 10 Aug",
+      "time": "8:30–10:00 AM",
+      "type": "quiz",
+      "block": "Sun 9 Aug · 1:00–5:00 PM",
+      "blockDate": "2026-08-09"
+    },
+    {
+      "name": "PPBS Mid-Term",
+      "date": "2026-08-11",
+      "dateLabel": "Tue 11 Aug",
+      "time": "4:30–6:00 PM",
+      "type": "mid-term",
+      "block": "Tue 11 Aug · 9:00 AM–1:00 PM",
+      "blockDate": "2026-08-11"
+    }
+  ],
+  "note": "37 sessions unmarked — update attendance in the Command Centre."
+}

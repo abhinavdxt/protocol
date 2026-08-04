@@ -324,7 +324,9 @@ function App(){
   const[st,setSt]=useState(null);
   const[openEx,setOpenEx]=useState(null);
 
+  const[plan,setPlan]=useState(null);
   useEffect(()=>window.__store.subscribe(setSt),[]);
+  useEffect(()=>{fetch("plan.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(setPlan).catch(()=>{});},[]);
 
   const jsDay=new Date().getDay();
   const di=jsDay===0?6:jsDay-1;
@@ -373,7 +375,37 @@ function App(){
           <div style={{fontSize:18,fontWeight:800,color:c.ac}}>{today.day} — {today.focus}</div>
           <div style={{fontSize:12,color:c.dm,marginTop:2}}>{today.tag}</div>
         </div>
-        <div style={{height:5,background:c.s2,borderRadius:3,margin:"0 16px",overflow:"hidden"}}><div style={{height:"100%",background:`linear-gradient(90deg,${c.ac},${c.gn})`,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
+
+        {/* EXAM / STUDY-BLOCK PLAN (from plan.json, refreshed twice daily) */}
+        {plan&&(()=>{
+          const du=(d)=>Math.ceil((new Date(d+"T00:00:00")-new Date(new Date().toDateString()))/86400000);
+          const now=new Date();
+          const todayISO=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+          const ex=(plan.exams||[]).map(e=>({...e,d:du(e.date)})).filter(e=>e.d>=0).sort((a,b)=>a.d-b.d);
+          const block=ex.find(e=>e.blockDate===todayISO);
+          if(!ex.length)return null;
+          const n=ex[0];const urgent=n.d<=2;
+          return(<div style={{margin:"12px 12px 0"}}>
+            {block&&<div style={{background:"rgba(64,200,128,0.1)",border:"1px solid rgba(64,200,128,0.35)",borderRadius:12,padding:"11px 14px",marginBottom:8}}>
+              <div style={{fontSize:11,fontWeight:700,color:c.gn,letterSpacing:0.5}}>📚 4-HOUR STUDY BLOCK TODAY</div>
+              <div style={{fontSize:14,fontWeight:700,marginTop:3}}>{block.name}</div>
+              <div style={{fontSize:12,color:c.tx,marginTop:1}}>{block.block}</div>
+            </div>}
+            <div style={{background:urgent?"rgba(240,80,80,0.1)":c.acd,border:`1px solid ${urgent?"rgba(240,80,80,0.35)":"rgba(184,240,53,0.25)"}`,borderRadius:12,padding:"12px 14px"}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:urgent?c.rd:c.ac}}>{n.d===0?"⚠ Exam today":n.d===1?"⚠ Exam tomorrow":`Next exam · ${n.d} days`}</div>
+              <div style={{fontSize:16,fontWeight:800,marginTop:3}}>{n.name}</div>
+              <div style={{fontSize:12,color:c.dm,marginTop:1}}>{n.dateLabel} · {n.time}</div>
+              <div style={{fontSize:12,color:urgent?c.or:c.ac,marginTop:6,fontWeight:600}}>Reserve 4h: {n.block}</div>
+            </div>
+            {ex.length>1&&<div style={{padding:"8px 4px 0"}}>
+              {ex.slice(1).map((e,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:c.dm,padding:"3px 2px"}}><span>{e.name}</span><span>{e.d}d · {e.dateLabel}</span></div>))}
+            </div>}
+            {plan.note&&<div style={{fontSize:11,color:c.or,marginTop:8,padding:"0 2px"}}>⚑ {plan.note}</div>}
+            {plan.updated&&<div style={{fontSize:9,color:c.dm,textAlign:"right",marginTop:6,letterSpacing:0.5}}>synced {plan.updated}</div>}
+          </div>);
+        })()}
+
+        <div style={{height:5,background:c.s2,borderRadius:3,margin:"12px 16px 0",overflow:"hidden"}}><div style={{height:"100%",background:`linear-gradient(90deg,${c.ac},${c.gn})`,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
         <div style={{textAlign:"right",padding:"4px 16px 8px",fontSize:11,color:c.dm}}>{done}/{allI.length} — {pct}%</div>
 
         {dailyChecklist.map(g=>(
