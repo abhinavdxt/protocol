@@ -1,43 +1,6 @@
 {
-  "updated": "Tue 4 Aug, 7:23 PM",
+  "updated": "Thu 6 Aug, 7:01 AM",
   "term": "XLRI Term IV · Sec E · B25349",
-  "exams": [
-    {
-      "name": "BAV Mid- Term (7:15 - 8:00 am)",
-      "date": "2026-08-04",
-      "dateLabel": "Tue 4 Aug",
-      "time": "8:00 AM",
-      "type": "Mid-Term",
-      "block": "Mon 3 Aug · 2:30–6:30 PM",
-      "blockDate": "2026-08-03"
-    },
-    {
-      "name": "PJM Mid Term",
-      "date": "2026-08-06",
-      "dateLabel": "Thu 6 Aug",
-      "time": "6:15–7:45",
-      "type": "Mid-Term",
-      "block": "Wed 5 Aug · 2:30–6:30 PM",
-      "blockDate": "2026-08-05"
-    },
-    {
-      "name": "CNB Quiz",
-      "date": "2026-08-10",
-      "dateLabel": "Mon 10 Aug",
-      "time": "8:30–10:00",
-      "type": "Quiz",
-      "block": "Sun 9 Aug · 2:30–6:30 PM",
-      "blockDate": "2026-08-09"
-    },
-    {
-      "name": "PPBS Mid-Term",
-      "date": "2026-08-11",
-      "dateLabel": "Tue 11 Aug",
-      "time": "4:30–6:00",
-      "type": "Mid-Term",
-      "block": "Mon 10 Aug · 2:30–6:30 PM",
-      "blockDate": "2026-08-10"
-    }
-  ],
-  "note": ""
+  "exams": [],
+  "note": "No upcoming exams for your courses right now."
 }
