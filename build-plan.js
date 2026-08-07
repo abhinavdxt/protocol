@@ -47,6 +47,15 @@ async function main() {
     all.push({ id: m[1], date: m[2], type: m[3], code: m[4], text: m[5], slot: cleanSlot(m[6]) });
   }
 
+  // Safety net: a healthy Command Centre response has dozens of assessment
+  // records. Zero here means the fetch/decode failed (blocked, redirected,
+  // format changed) rather than "no exams exist" — bail out instead of
+  // writing empty data over a known-good plan.json.
+  if (all.length === 0) {
+    console.error(`build-plan failed: parsed 0 total assessment records from ${res.status} response (${raw.length} bytes) — source fetch or decode is broken, not writing plan.json.`);
+    process.exit(1);
+  }
+
   const today = nowIST();
   const todayISO = iso(today);
 
@@ -80,6 +89,23 @@ async function main() {
   };
 
   const fs = require("fs");
+
+  // Second safety net: source parsed fine (all.length > 0 above) but our
+  // enrolled-course filter came back empty. If the existing plan.json still
+  // has future exams in it, that's a real signal something's wrong (course
+  // codes changed, date field changed) rather than exams genuinely running
+  // out — refuse to clobber good data, surface it as a failure instead.
+  if (exams.length === 0) {
+    try {
+      const prev = JSON.parse(fs.readFileSync("plan.json", "utf8"));
+      const prevFuture = (prev.exams || []).filter(e => e.date >= todayISO);
+      if (prevFuture.length > 0) {
+        console.error(`build-plan failed: parsed ${all.length} total records but 0 matched enrolled courses (${ENROLLED.join(",")}), while existing plan.json still has ${prevFuture.length} future exam(s). Not overwriting — investigate before re-running.`);
+        process.exit(1);
+      }
+    } catch (_) { /* no existing plan.json — fine, proceed to write */ }
+  }
+
   fs.writeFileSync("plan.json", JSON.stringify(plan, null, 2) + "\n");
   console.log(`Wrote plan.json — ${exams.length} upcoming exam(s):`);
   exams.forEach(e => console.log(`  ${e.date} ${e.name} (block ${e.blockDate})`));
