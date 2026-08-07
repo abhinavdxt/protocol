@@ -278,39 +278,136 @@ const dailyChecklist = [
 
 const shoppingList = [
   { cat: "💊 Supplements", items: [
-    { n: "Creatine Monohydrate", pick: "Any '100% Creatine Monohydrate' — Asitis/Fast&Up", p: "₹350-450", api: "Same molecule everywhere. Purity > brand." },
-    { n: "Whey Protein 1kg", pick: "Asitis Whey Concentrate — lab tested", p: "₹1,800-2,200", api: "Whey Concentrate/Isolate — >24g protein/scoop." },
-    { n: "Fish Oil Omega-3", pick: "HK Vitals — check 500mg+ DHA", p: "₹250-350", api: "EPA + DHA mg per capsule is what matters." },
-    { n: "Multivitamin", pick: "Zingavita or Healthvit", p: "₹200-300", api: "Standard vitamin-mineral complex." },
-    { n: "Biotin 10,000mcg", pick: "HK Vitals Biotin", p: "₹200", api: "D-Biotin (Vitamin B7) — identical everywhere." },
+    { n: "Creatine Monohydrate", pick: "Any '100% Creatine Monohydrate' — Asitis/Fast&Up", p: "₹350-450",
+      goal: "More strength/power in lifts so you keep building or holding muscle while eating at a deficit — the thing that actually protects your metabolism during the cut.",
+      why: "Creatine monohydrate is the single most-proven strength supplement that exists. It lets your muscles regenerate ATP faster, meaning more reps at the same weight, which over months is more training stimulus than you'd get without it.",
+      choice: "Creatine monohydrate is one molecule — every brand's is chemically identical, there's no 'better' version. HCl/buffered/ethyl-ester 'upgrades' are marketing, not backed by better absorption in the research. So we pick on price + trust, not brand: Asitis/Fast&Up are India-based (fresher stock, not gray-market), commonly batch-tested, and a fraction of the price of MuscleBlaze/ON for the identical compound." },
+    { n: "Whey Protein 1kg", pick: "Asitis Whey Concentrate — lab tested", p: "₹1,800-2,200",
+      goal: "Hit your daily protein target without needing to eat an unrealistic volume of whole food inside a calorie deficit.",
+      why: "Protein is what stops you losing muscle along with fat when you're eating less. Whey specifically digests fast and is high in leucine, the amino acid that most directly triggers muscle repair.",
+      choice: "Concentrate over isolate: isolate strips more lactose/fat for a purity gain most people don't need, and costs more for it — isolate only matters if you're lactose-sensitive. Picked a brand with visible third-party lab testing on purpose: whey protein content is one of the most commonly adulterated labels in India (maltodextrin/cheap amino padding to inflate the protein% claim) — a lab report is the one thing that actually protects you here, not the brand name." },
+    { n: "Fish Oil Omega-3", pick: "HK Vitals — check 500mg+ DHA", p: "₹250-350",
+      goal: "Lower training-induced inflammation and support joints — relevant because you're running high training volume on a deficit, which is harder on recovery.",
+      why: "The active compounds are EPA and DHA specifically, not 'fish oil' as a category.",
+      choice: "Most cheap fish oil in India lists only 'Fish Oil 1000mg' on the front without breaking out actual EPA+DHA — that number can be under 300mg of the 1000. HK Vitals is picked because it states DHA content directly on the label. The rule: read the EPA+DHA mg, ignore the total oil weight." },
+    { n: "Multivitamin", pick: "Zingavita or Healthvit", p: "₹200-300",
+      goal: "Insurance against micronutrient gaps — when you cut total food volume, micronutrients drop even if you're still hitting your protein number.",
+      why: "Broad vitamin-mineral coverage at RDA levels, not a performance product.",
+      choice: "This is a commodity category — no brand outperforms another at standard doses. Picked these two for sane dosing without mega-dosing the fat-soluble vitamins (A/D/E/K), which can actually accumulate to harmful levels if you stack them with fortified foods elsewhere in your diet." },
+    { n: "Biotin 10,000mcg", pick: "HK Vitals Biotin", p: "₹200",
+      goal: "Paired with the minoxidil below — general hair-health support during the shedding/regrowth phase.",
+      why: "⚠ Worth knowing: biotin's evidence for hair growth is weak unless you have an actual deficiency (rare). It's the least evidence-backed item in this whole list — keep it if you want the insurance, but don't expect it to move the needle on its own. Separately: high-dose biotin can throw off certain blood tests (thyroid panels, troponin/cardiac tests) — mention you're taking it if you ever get bloodwork done.",
+      choice: "D-Biotin is D-Biotin regardless of brand — picked purely on being a cheap, reliable source." },
   ]},
   { cat: "✨ Skincare", items: [
-    { n: "Gentle Face Wash", pick: "Simple Kind to Skin / Cetaphil", p: "₹200-350", api: "Mild surfactants, no SLS." },
-    { n: "Vitamin C Serum 10%", pick: "Minimalist or Derma Co 10%", p: "₹250-400", api: "L-Ascorbic Acid only. Skip derivatives." },
-    { n: "Sunscreen SPF 50", pick: "Minimalist / Re'equil SPF 50", p: "₹350-400", api: "UV filters — SPF 30+ threshold." },
-    { n: "Niacinamide 10%", pick: "Minimalist 10% Niacinamide", p: "₹300-350", api: "Vitamin B3 at 10% — pores + tone." },
-    { n: "Moisturizer", pick: "Cetaphil DAM / Minimalist", p: "₹250-350", api: "Ceramides + HA — barrier repair." },
-    { n: "Retinol (Week 5+)", pick: "Minimalist 0.3% Retinol", p: "₹350-400", api: "Vitamin A — PM only, start low." },
-    { n: "Eye Serum", pick: "mCaffeine Under Eye", p: "₹250-300", api: "Caffeine — reduces puffiness." },
-    { n: "AHA/BHA Exfoliant", pick: "Minimalist 2% Salicylic Acid", p: "₹300-350", api: "Salicylic Acid 2% — unclogs pores." },
+    { n: "Gentle Face Wash", pick: "Simple Kind to Skin / Cetaphil", p: "₹200-350",
+      goal: "Clean skin without stripping the barrier you need intact for the actives below (Vit C, Niacinamide, Retinol, AHA/BHA) to actually be tolerable long-term.",
+      why: "Sulfate-heavy cleansers strip natural oil, which triggers rebound oiliness and makes every other active in this routine sting more.",
+      choice: "Simple/Cetaphil are the default 'boring' cleansers dermatologists reach for precisely because they don't fight with the actives layered on top — a 'purifying' or foaming cleanser marketed for acne would undercut the rest of this list." },
+    { n: "Vitamin C Serum 10%", pick: "Minimalist or Derma Co 10%", p: "₹250-400",
+      goal: "Antioxidant protection plus gradual fading of post-acne marks/dullness.",
+      why: "L-ascorbic acid is the only form of Vitamin C with strong clinical backing. Derivatives (magnesium ascorbyl phosphate, ethyl ascorbic acid) are gentler but noticeably weaker.",
+      choice: "Chose potency over gentleness: 10% L-AA is well tolerated by most skin and the visible difference vs. a derivative version is large. Don't go past 15-20% — irritation rises faster than benefit past that point. Use AM, under sunscreen." },
+    { n: "Sunscreen SPF 50", pick: "Re'equil Oxybenzone & OMC Free Sunscreen, 50g — ₹355", p: "₹355 (₹710/100g)",
+      goal: "This is the single highest-ROI product on the entire list — it protects every other active you're paying for. Vit C, Retinol, and AHA/BHA all increase photosensitivity, so skipping this undoes the rest of the routine.",
+      why: "Blocks UV damage that causes photoaging and the exact hyperpigmentation you're trying to fade with the Vitamin C.",
+      choice: "Checked live Amazon listings: this 50g Oxybenzone/OMC-free version is ₹710/100g vs the Re'equil Ultra Matte Dry Touch at ₹1,550/100g — less than half the cost per gram, and it's formulated for oily/acne-prone/sensitive skin, which matters since you're layering Niacinamide, Retinol and AHA/BHA on this skin and don't want a sunscreen clogging pores underneath them. Trade-off: PA+++ here vs PA++++ on the Ultra Matte (slightly less UVA protection) — worth the upgrade only if you're regularly outdoors midday for long stretches. Skip the 6g trial pack either way, worst ₹/g on the page." },
+    { n: "Niacinamide 10%", pick: "Minimalist 10% Niacinamide", p: "₹300-350",
+      goal: "Oil control, smaller-looking pores, calms active breakouts.",
+      why: "Vitamin B3 — reduces oil production and has a mild anti-inflammatory effect, plus supports barrier function.",
+      choice: "10% is the well-studied sweet spot. 20% versions exist but show diminishing (sometimes irritating) returns for most skin — no reason to pay more for a stronger number here." },
+    { n: "Moisturizer", pick: "Cetaphil DAM / Minimalist", p: "₹250-350",
+      goal: "Replace the barrier lipids that Niacinamide, Vit C, Retinol and AHA/BHA all strip to some degree — this is what determines whether you can actually tolerate the rest of the stack long-term, not optional.",
+      why: "Ceramides + hyaluronic acid actively repair the skin barrier, versus a plain occlusive that just sits on top.",
+      choice: "Picked for the ceramide+HA formula specifically over a generic 'moisturizing cream' — the ingredient list matters more than the brand here." },
+    { n: "Retinol (Week 5+)", pick: "Minimalist 0.3% Retinol", p: "₹350-400",
+      goal: "Collagen stimulation, faster cell turnover, prevention of fine lines/texture/acne over months.",
+      why: "Vitamin A derivative — the most-proven anti-aging/anti-acne topical that exists, but also the most likely to irritate if you start too early or too strong.",
+      choice: "Deliberately sequenced to week 5, not day 1: introducing it before your skin has adjusted to the rest of the routine spikes irritation and makes it impossible to tell which product caused a reaction. 0.3% is a low starter strength on purpose — 'start low, go slow' is the actual reason most first-time retinol users quit is skipped this way. PM only, never combine with the Vit C application (use one AM, one PM)." },
+    { n: "Eye Serum", pick: "mCaffeine Under Eye", p: "₹250-300",
+      goal: "Reduce puffiness/dark circles — purely cosmetic quality-of-life, lowest priority item in this entire list.",
+      why: "Caffeine is the one ingredient here with real (if modest) evidence — it constricts blood vessels and reduces fluid pooling under the eyes.",
+      choice: "Flagging honestly: this is the most skippable item on the list if budget is tight. Nothing else here substitutes for sleep, which is the actual bigger lever on under-eye puffiness." },
+    { n: "AHA/BHA Exfoliant", pick: "Minimalist 2% Salicylic Acid", p: "₹300-350",
+      goal: "Unclog pores and exfoliate dead skin — helps with body/back or facial acne and rough texture.",
+      why: "Salicylic acid (BHA) is oil-soluble, so it gets inside the pore itself, unlike an AHA (glycolic/lactic) which mostly works on the surface.",
+      choice: "Chose BHA over AHA specifically because it's more relevant for oily/acne-prone skin in a humid climate — an AHA would be the better pick if your main concern were dullness/texture on dry skin instead." },
   ]},
   { cat: "💇 Hair", items: [
-    { n: "Minoxidil 5%", pick: "Morr-F 5% or Tugain 5%", p: "₹300-400", api: "Same minoxidil. Morr-F adds Finasteride." },
-    { n: "Sulfate-free Shampoo", pick: "Re'equil Anti Hair Fall", p: "₹350-400", api: "No SLS/SLES stripping." },
-    { n: "Scalp Serum", pick: "Minimalist Salicylic Acid 2%", p: "₹300", api: "Unclogs follicles from fiber buildup." },
-    { n: "Light Hairspray", pick: "Any light-hold spray", p: "₹100-150", api: "Less stress on thin hair than stronghold." },
-    { n: "Satin Pillowcase", pick: "Any satin on Amazon", p: "₹200-300", api: "Smooth = less friction = less breakage." },
+    { n: "Minoxidil 5%", pick: "Morr-F 5% or Tugain 5%", p: "₹300-400",
+      goal: "Slow shedding and stimulate regrowth — this is the core item the rest of the Hair category supports (biotin, scalp serum, shampoo aren't separate purchases, they're all in service of this one).",
+      why: "Minoxidil is the only OTC topical with real randomized-trial evidence for regrowth (the other proven option, finasteride, is prescription-only in most places).",
+      choice: "⚠ Decide this one deliberately, don't default into it: Morr-F combines minoxidil WITH finasteride in one product; Tugain is minoxidil-only. Finasteride is a hormonal drug (blocks DHT) with a small but real minority reporting libido/mood side effects — it's meaningfully different from minoxidil, which is topical and non-hormonal. If you want the stronger combined effect and are comfortable with that trade-off, Morr-F; if you want to start conservative, Tugain alone." },
+    { n: "Sulfate-free Shampoo", pick: "Re'equil Anti Hair Fall", p: "₹350-400",
+      goal: "Avoid accelerating dryness/shedding — especially relevant since minoxidil itself can already dry out the scalp as a side effect, so you don't want the shampoo compounding that.",
+      why: "Sulfates (SLS/SLES) strip scalp oil aggressively, which is the opposite of what you want while running minoxidil.",
+      choice: "Picked for the sulfate-free base, not the 'anti hair fall' marketing claim on the bottle — no shampoo regrows hair on its own; that's minoxidil's job." },
+    { n: "Scalp Serum", pick: "Minimalist Salicylic Acid 2%", p: "₹300",
+      goal: "Keep follicles clear of sebum/product buildup so the minoxidil actually reaches the follicle instead of sitting on top of buildup.",
+      why: "Same logic as the facial BHA exfoliant — salicylic acid is oil-soluble, so it unclogs rather than just sitting on the surface.",
+      choice: "Chose the same active (salicylic acid) as the face routine for consistency and because it's the ingredient with the clearest mechanism for this specific job." },
+    { n: "Light Hairspray", pick: "Any light-hold spray", p: "₹100-150",
+      goal: "Cosmetic hold without weighing hair down — heavy-hold sprays make thinning hair look flatter and more see-through at the scalp.",
+      why: "Hold strength is the only spec that matters for this use case.",
+      choice: "Brand is genuinely irrelevant here — the spec to check on the bottle is 'light hold,' skip anything labelled 'strong/extreme hold.'" },
+    { n: "Satin Pillowcase", pick: "Any satin on Amazon", p: "₹200-300",
+      goal: "Reduce nightly friction/breakage on hair that's already stressed from shedding.",
+      why: "Cotton pulls moisture out of hair and creates friction overnight; satin doesn't grab hair the same way.",
+      choice: "This is a material-science claim (satin vs cotton), not a brand claim — any satin pillowcase does the job identically." },
   ]},
   { cat: "🧔 Grooming", items: [
-    { n: "Beard Oil", pick: "DIY: Jojoba + Tea Tree drops", p: "₹150-200", api: "Carrier oil is all that matters." },
-    { n: "Beard Trimmer", pick: "Havells or Nova", p: "₹600-800", api: "Blade quality > brand." },
-    { n: "Boar Bristle Brush", pick: "Any boar bristle brush", p: "₹150-200", api: "Natural bristle tames without static." },
-    { n: "Bio-Oil / Cocoa Butter", pick: "Palmer's Cocoa Butter", p: "₹200-250", api: "Emollients + Vit E for stretch marks." },
+    { n: "Beard Oil", pick: "DIY: Jojoba + Tea Tree drops", p: "₹150-200",
+      goal: "Soften beard hair and moisturize the skin underneath to prevent itchiness/beardruff.",
+      why: "The carrier oil (jojoba) does the actual moisturizing work; tea tree oil adds a mild antimicrobial/scent element.",
+      choice: "Chose DIY deliberately over commercial beard oil brands — commercial bottles are ~90% carrier oil with a few drops of essential oil added, marked up 5-10x over buying the same components separately. Same function, fraction of the cost." },
+    { n: "Beard Trimmer", pick: "Havells or Nova", p: "₹600-800",
+      goal: "Maintain beard length/shape at home instead of paying for barber trims repeatedly.",
+      why: "Blade sharpness and motor durability are what actually matter for trim quality — not the brand badge.",
+      choice: "Havells/Nova are reliable mid-range Indian brands that cover this. Philips/Braun exist at 2-3x the price for the same core function at this use case — that premium buys marginal quality-of-life features (more guard lengths, quieter motor), not a materially better trim." },
+    { n: "Boar Bristle Brush", pick: "Any boar bristle brush", p: "₹150-200",
+      goal: "Distribute natural beard/scalp oils evenly and detangle without static.",
+      why: "Natural bristle grabs hair and carries sebum along it; plastic bristles generate static and just push hair around instead.",
+      choice: "Material (natural bristle) is the actual spec — brand doesn't change the mechanism." },
+    { n: "Bio-Oil / Cocoa Butter", pick: "Palmer's Cocoa Butter", p: "₹200-250",
+      goal: "Support skin elasticity specifically because you're targeting fast fat loss (100.4→86kg) — skin can retract faster than collagen remodels, which is what causes stretch marks during a rapid cut.",
+      why: "Cocoa butter + Vitamin E are the long-standing 'boring but reasonable' choice here.",
+      choice: "Being honest: clinical evidence for ANY topical actually preventing stretch marks is weak overall — no product has strong RCT backing for this. Picked Palmer's because it's cheap and definitely won't hurt, and the daily massage motion of applying it may matter as much as the ingredient itself. Don't expect a guarantee from this one." },
   ]},
   { cat: "🏠 Room Equipment", items: [
-    { n: "Resistance Band Set", pick: "Any loop set on Amazon", p: "₹200-300", api: "Latex/rubber — tension is tension." },
-    { n: "Yoga Mat 6mm", pick: "Any 4-6mm EVA mat", p: "₹200-300", api: "Thickness for knee comfort." },
-    { n: "Heavy Backpack", pick: "Your backpack + old books", p: "₹0", api: "Gravity doesn't check the brand." },
+    { n: "Resistance Band Set", pick: "Any loop set on Amazon", p: "₹200-300",
+      goal: "At-home warm-up, joint activation, and mobility work — fills the gap on rest days or when the gym isn't accessible.",
+      why: "Bands give continuous tension through a range of motion that bodyweight-only movements can't replicate for activation work.",
+      choice: "Latex loop bands are a commodity — tension consistency doesn't meaningfully differ across brands, so buy on price." },
+    { n: "Yoga Mat 6mm", pick: "Any 4-6mm EVA mat", p: "₹200-300",
+      goal: "Cushioning for floor work (mobility, ab work, stretching, knee-correction drills).",
+      why: "6mm specifically chosen over a thinner 3-4mm 'yoga' mat because it's kinder on knees/joints during floor exercises — relevant given the knee-correction work already in your routine.",
+      choice: "Thickness is the spec that matters here, not brand — anything in the 4-6mm EVA foam range does the job." },
+    { n: "Heavy Backpack", pick: "Your backpack + old books", p: "₹0",
+      goal: "A free weighted-implement substitute for loaded carries/rucking/weighted lunges.",
+      why: "External load is external load — your muscles don't know whether resistance came from a ₹6,000 weight vest or a backpack full of textbooks.",
+      choice: "Zero cost, uses what you already own — no reason to buy a weighted vest for this specific use case unless you want the convenience of even weight distribution." },
+  ]},
+  { cat: "🧩 Consider Adding (not yet on your list)", items: [
+    { n: "Kitchen Scale", pick: "Any digital scale, 1g precision — ₹300-500 on Amazon", p: "₹300-500",
+      goal: "Accurate portion sizes for your calorie/protein targets — this is probably the single highest-leverage item missing from the whole list.",
+      why: "Eyeballing portions is the most common reason a 'correct on paper' diet doesn't produce the expected result — a 200g vs 150g chicken breast 'guess' is a real swing on your daily protein/calorie math, every day, compounding over weeks.",
+      choice: "Any basic digital kitchen scale works identically — no premium version needed, this is pure commodity electronics." },
+    { n: "Body Tape Measure", pick: "Any soft tape measure — ₹100-150", p: "₹100-150",
+      goal: "Track recomposition (waist/chest/arm) that the scale alone can't show — if you're losing fat and gaining muscle at the same time, the scale can stall for weeks while you're still visibly changing.",
+      why: "Weight is one number confounded by water/food/muscle changes; a tape measure gives you a second, more diagnostic signal.",
+      choice: "Any tape measure works — the discipline of measuring the same spots weekly matters more than the tool." },
+    { n: "Electrolyte/ORS Sachets", pick: "Electral or Vitalyte", p: "₹100-150",
+      goal: "Prevent the cramps/fatigue/headaches that show up from combining a calorie deficit, heavy training, and Indian heat — these symptoms usually get misattributed to 'the diet not working' when it's actually just sodium depletion.",
+      why: "Sweat + reduced food intake both lower sodium/electrolyte levels below what plain water rehydration fixes.",
+      choice: "Electral/Vitalyte are standard, cheap, widely available — no reason to pay more for a 'sports' branded version of the same rehydration salts." },
+    { n: "Psyllium Husk (Isabgol)", pick: "Any brand, e.g. Dabur Isabgol", p: "₹150-200",
+      goal: "Prevent the constipation that a high-protein, reduced-calorie diet commonly causes — almost always overlooked until it's already a problem.",
+      why: "High protein + lower overall food volume both reduce fiber intake unless you deliberately add it back.",
+      choice: "Psyllium husk is a commodity fiber source — any brand delivers the same soluble fiber." },
+    { n: "Derma Roller 0.5mm (for hair)", pick: "Any 0.5mm dermaroller — ₹250-350", p: "₹250-350",
+      goal: "The one hair-category addition with real evidence behind it that's currently missing — microneedling has RCT support for improving minoxidil absorption and regrowth results when used ~1x/week.",
+      why: "Micro-injuries from the roller increase minoxidil penetration into the scalp and may independently stimulate growth factors.",
+      choice: "This is a stronger evidence-to-cost bet than the biotin already on your list — if you only add one thing from this section to the Hair category, make it this, not another supplement." },
   ]},
 ];
 
@@ -323,6 +420,7 @@ function App(){
   const[tab,setTab]=useState("today");
   const[st,setSt]=useState(null);
   const[openEx,setOpenEx]=useState(null);
+  const[openShop,setOpenShop]=useState(null);
 
   const[plan,setPlan]=useState(null);
   useEffect(()=>window.__store.subscribe(setSt),[]);
@@ -479,14 +577,32 @@ function App(){
         {shoppingList.map(cat=>(
           <div key={cat.cat} style={{padding:"0 12px",marginBottom:12}}>
             <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:c.dm,marginBottom:8}}>{cat.cat}</div>
-            {cat.items.map((item,i)=>(
-              <div key={i} style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:10,padding:"10px 14px",marginBottom:8}}>
-                <div style={{fontSize:13,fontWeight:700}}>{item.n}</div>
-                <div style={{fontSize:12,color:c.ac,marginTop:3}}>{item.pick}</div>
-                <div style={{fontSize:12,fontWeight:700,color:c.gn,marginTop:2}}>{item.p}</div>
-                <div style={{fontSize:11,color:c.dm,marginTop:6,fontStyle:"italic",lineHeight:1.4,paddingTop:6,borderTop:`1px solid ${c.br}`}}>{item.api}</div>
+            {cat.items.map((item,i)=>{const k=`${cat.cat}-${i}`;const o=openShop===k;return(
+              <div key={k} style={{background:c.s1,border:`1px solid ${o?c.ac:c.br}`,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
+                <div onClick={()=>setOpenShop(o?null:k)} style={{padding:"10px 14px",cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{fontSize:13,fontWeight:700}}>{item.n}</div>
+                    <Chev open={o}/>
+                  </div>
+                  <div style={{fontSize:12,color:c.ac,marginTop:3}}>{item.pick}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:c.gn,marginTop:2}}>{item.p}</div>
+                </div>
+                {o&&<div style={{padding:"2px 14px 14px",background:c.s2,borderTop:`1px solid ${c.br}`}}>
+                  <div style={{marginTop:10}}>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:c.gn}}>Goal — what we want out of it</div>
+                    <div style={{fontSize:12,color:c.tx,marginTop:3,lineHeight:1.5}}>{item.goal}</div>
+                  </div>
+                  <div style={{marginTop:10}}>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:c.or}}>Why this at all</div>
+                    <div style={{fontSize:12,color:c.tx,marginTop:3,lineHeight:1.5}}>{item.why}</div>
+                  </div>
+                  <div style={{marginTop:10}}>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:c.ac}}>Why this pick, not another</div>
+                    <div style={{fontSize:12,color:c.tx,marginTop:3,lineHeight:1.5}}>{item.choice}</div>
+                  </div>
+                </div>}
               </div>
-            ))}
+            );})}
           </div>
         ))}
       </div>}
