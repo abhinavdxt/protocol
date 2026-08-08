@@ -57,17 +57,65 @@
 
   var todayStr = function () { return new Date().toDateString(); };
 
+  // Which checklist ticks consume which supplies, and how much per tick.
+  // One tick can draw down several supplies at once (e.g. "Skincare AM").
+  var CONSUMABLE_MAP = {
+    shake:   [{ key: "creatine", amt: 5 }],
+    skinam:  [{ key: "facewash", amt: 1 }, { key: "vitc", amt: 0.5 }, { key: "spf", amt: 1 }, { key: "eyeserum", amt: 0.3 }],
+    skinpm:  [{ key: "facewash", amt: 1 }, { key: "niacinamide", amt: 0.5 }, { key: "moisturizer", amt: 1 }],
+    beard:   [{ key: "beardoil", amt: 0.5 }],
+    body:    [{ key: "biooil", amt: 3 }],
+    minox:   [{ key: "minoxidil", amt: 1 }, { key: "scalpserum", amt: 0.5 }],
+    shower:  [{ key: "shampoo", amt: 5 }, { key: "hairfiber", amt: 0.3 }, { key: "hairgel", amt: 2 }],
+    w1:      [{ key: "ahabha", amt: 1 }],
+    w2:      [{ key: "ahabha", amt: 1 }],
+  };
+
+  // Package sizes for tracked supplies (matches what's actually been bought).
+  var SUPPLIES = {
+    creatine:     { label: "Creatine Monohydrate",   size: 250, unit: "g" },
+    facewash:     { label: "Face Wash",              size: 59,  unit: "ml" },
+    vitc:         { label: "Vitamin C Serum",        size: 10,  unit: "ml" },
+    spf:          { label: "Sunscreen",              size: 50,  unit: "g" },
+    eyeserum:     { label: "Eye Cream (mCaffeine)",  size: 15,  unit: "g" },
+    niacinamide:  { label: "Niacinamide Serum",      size: 60,  unit: "ml" },
+    moisturizer:  { label: "Moisturizer",            size: 100, unit: "g" },
+    beardoil:     { label: "Beard Oil",              size: 30,  unit: "ml" },
+    biooil:       { label: "Bio-Oil / Cocoa Butter", size: 200, unit: "g" },
+    minoxidil:    { label: "Minoxidil",              size: 60,  unit: "ml" },
+    scalpserum:   { label: "Scalp Serum",            size: 100, unit: "ml" },
+    shampoo:      { label: "Shampoo",                size: 200, unit: "ml" },
+    hairfiber:    { label: "Hair Fiber",             size: 50,  unit: "g" },
+    hairgel:      { label: "Hair Gel",               size: 150, unit: "ml" },
+    ahabha:       { label: "AHA/BHA Exfoliant",      size: 30,  unit: "ml" },
+  };
+  window.__SUPPLIES = SUPPLIES;
+
   // Normalize a stored blob + reset daily checks when the date rolls over.
+  // Before wiping yesterday's checks, roll them into the persistent usage log.
   function normalize(s) {
-    if (!s) return { date: todayStr(), checks: {}, weekly: {} };
+    if (!s) return { date: todayStr(), checks: {}, weekly: {}, usage: {}, opened: {} };
     var date = s.date || todayStr();
     var checks = s.checks || {};
     var weekly = s.weekly || {};
-    if (date !== todayStr()) { date = todayStr(); checks = {}; } // new day → reset dailies
-    return { date: date, checks: checks, weekly: weekly };
+    var usage = s.usage || {};
+    var opened = s.opened || {};
+    if (date !== todayStr()) {
+      var u = Object.assign({}, usage);
+      Object.keys(checks).forEach(function (id) {
+        if (!checks[id] || !CONSUMABLE_MAP[id]) return;
+        CONSUMABLE_MAP[id].forEach(function (c) {
+          var prev = u[c.key] || { totalUsed: 0 };
+          u[c.key] = { totalUsed: prev.totalUsed + c.amt, lastDate: date };
+        });
+      });
+      usage = u;
+      date = todayStr(); checks = {}; // new day → reset dailies
+    }
+    return { date: date, checks: checks, weekly: weekly, usage: usage, opened: opened };
   }
 
-  var state = { date: todayStr(), checks: {}, weekly: {} };
+  var state = { date: todayStr(), checks: {}, weekly: {}, usage: {}, opened: {} };
   var subs = [];
   var ready = false;
   var persist = function () {};
@@ -84,12 +132,18 @@
     },
     toggleDaily: function (id) {
       var c = Object.assign({}, state.checks); c[id] = !c[id];
-      state = { date: state.date, checks: c, weekly: state.weekly };
+      state = Object.assign({}, state, { checks: c });
       notify(); persist();
     },
     toggleWeekly: function (id) {
       var w = Object.assign({}, state.weekly); w[id] = !w[id];
-      state = { date: state.date, checks: state.checks, weekly: w };
+      state = Object.assign({}, state, { weekly: w });
+      notify(); persist();
+    },
+    markOpened: function (key) {
+      var o = Object.assign({}, state.opened); o[key] = todayStr();
+      var u = Object.assign({}, state.usage); u[key] = { totalUsed: 0, lastDate: todayStr() };
+      state = Object.assign({}, state, { opened: o, usage: u });
       notify(); persist();
     }
   };
@@ -417,6 +471,8 @@ const c = { bg:"#06060a",s1:"#111118",s2:"#1a1a24",br:"#252535",tx:"#e4e4ec",dm:
 function Chk(){return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke={c.bg} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
 function Chev({open}){return <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{transform:open?"rotate(180deg)":"none",transition:"0.2s"}}><path d="M4 6L8 10L12 6" stroke={c.dm} strokeWidth="2" strokeLinecap="round"/></svg>}
 
+const SUPPLIES = window.__SUPPLIES || {};
+
 function App(){
   const[tab,setTab]=useState("today");
   const[st,setSt]=useState(null);
@@ -463,7 +519,7 @@ function App(){
 
       {/* Tabs */}
       <div style={{display:"flex",gap:4,padding:"6px 12px",position:"sticky",top:0,background:c.bg,zIndex:10,borderBottom:`1px solid ${c.br}`}}>
-        {[["today","✅ Today"],["workout","💪 Workout"],["shop","🛒 Shop"]].map(([k,l])=>(
+        {[["today","✅ Today"],["workout","💪 Workout"],["shop","🛒 Shop"],["supplies","📦 Supplies"]].map(([k,l])=>(
           <div key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"10px 4px",borderRadius:10,background:tab===k?c.ac:c.s1,color:tab===k?c.bg:c.dm,fontWeight:tab===k?700:500,fontSize:12,border:`1px solid ${tab===k?c.ac:c.br}`,cursor:"pointer",textAlign:"center"}}>{l}</div>
         ))}
       </div>
@@ -606,6 +662,47 @@ function App(){
             );})}
           </div>
         ))}
+      </div>}
+
+      {/* SUPPLIES TAB */}
+      {tab==="supplies"&&<div style={{padding:"0 12px"}}>
+        <div style={{fontSize:11,color:c.dm,padding:"12px 2px",lineHeight:1.5}}>
+          Estimates are built from your actual checklist ticks, not the label size alone. Tap "Mark as opened" the day you start a fresh bottle so the countdown has a clean starting point — new items need a few days of ticks before an estimate shows up.
+        </div>
+        {Object.keys(SUPPLIES).map(key=>{
+          const sup = SUPPLIES[key];
+          const u = (st && st.usage && st.usage[key]) || { totalUsed: 0 };
+          const openedStr = st && st.opened && st.opened[key];
+          let daysLeft=null, runOutDate=null, daysTracked=0;
+          if (openedStr) {
+            daysTracked = Math.max(1, Math.round((Date.now()-new Date(openedStr).getTime())/86400000));
+            const perDay = u.totalUsed/daysTracked;
+            const remaining = sup.size - u.totalUsed;
+            if (perDay>0 && daysTracked>=3) {
+              daysLeft = Math.max(0, Math.round(remaining/perDay));
+              const d=new Date(); d.setDate(d.getDate()+daysLeft);
+              runOutDate = d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+            }
+          }
+          return (
+            <div key={key} style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:10,padding:"12px 14px",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:13,fontWeight:700}}>{sup.label}</div>
+                <div style={{fontSize:11,color:c.dm}}>{sup.size}{sup.unit} pack</div>
+              </div>
+              {!openedStr && <div style={{marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:11,color:c.dm}}>Not tracking yet</div>
+                <div onClick={()=>window.__store.markOpened(key)} style={{fontSize:11,fontWeight:700,color:c.bg,background:c.ac,padding:"6px 10px",borderRadius:8,cursor:"pointer"}}>Mark as opened</div>
+              </div>}
+              {openedStr && daysLeft===null && <div style={{marginTop:8,fontSize:12,color:c.dm}}>Tracking since {openedStr} — building up enough data ({daysTracked} day{daysTracked===1?"":"s"} so far).</div>}
+              {openedStr && daysLeft!==null && <div style={{marginTop:8}}>
+                <div style={{fontSize:13,fontWeight:700,color:daysLeft<=7?c.rd:daysLeft<=14?c.or:c.gn}}>~{daysLeft} day{daysLeft===1?"":"s"} left</div>
+                <div style={{fontSize:11,color:c.dm,marginTop:2}}>Runs out around {runOutDate} at your current pace · opened {openedStr}</div>
+                <div onClick={()=>window.__store.markOpened(key)} style={{fontSize:10,color:c.ac,marginTop:6,cursor:"pointer",textDecoration:"underline"}}>Just opened a new one? Reset tracking</div>
+              </div>}
+            </div>
+          );
+        })}
       </div>}
 
       <div style={{textAlign:"center",padding:"24px 0",fontSize:10,color:c.dm,letterSpacing:2,textTransform:"uppercase"}}>
