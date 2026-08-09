@@ -6,13 +6,33 @@
 <meta name="theme-color" content="#06060a" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Protocol" />
-<title>The Protocol</title>
+<meta name="apple-mobile-web-app-title" content="Protocol Timetable" />
+<title>The Protocol — Timetable & Calorie Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #06060a; }
-  body { -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; background: #06060a; color: #f4f1ec; }
+  body { -webkit-font-smoothing: antialiased; font-family: 'Outfit', -apple-system, sans-serif; }
   #root { min-height: 100vh; }
+  
+  /* Glassmorphism & subtle scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .animate-fade { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .animate-pulse { animation: pulse 2s infinite; }
 </style>
 </head>
 <body>
@@ -25,15 +45,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <!-- ============================================================= -->
-<!--  ⬇⬇⬇  EDIT THE TWO BLOCKS BELOW  ⬇⬇⬇                          -->
-<!--  1) Paste your Firebase config (from the Firebase console)     -->
-<!--  2) Set a long, private SYNC_CODE (same on phone AND laptop)   -->
-<!--  Until you do, the app runs in "local only" mode and still     -->
-<!--  works perfectly — it just won't sync between devices yet.     -->
+<!--  SYNC ENGINE — SAME CONFIG & CODE AS index.html               -->
+<!--  Paste FIREBASE_CONFIG & SYNC_CODE to sync across devices.    -->
 <!-- ============================================================= -->
 <script>
 (function () {
-  // ---- 1) FIREBASE CONFIG ------------------------------------------------
   var FIREBASE_CONFIG = {
     apiKey: "AIzaSyDPUq6RuoNJk4C-ZyPwLYk6_UG2EG1m9Tk",
     authDomain: "protocol-abhinav.firebaseapp.com",
@@ -43,14 +59,8 @@
     appId: "1:108786974142:web:2d512fffcb470d15968def"
   };
 
-  // ---- 2) SYNC CODE ------------------------------------------------------
-  // Make this long and private (like a password). Use the SAME value on
-  // every device you want to sync. Anyone with this code can see your data.
   var SYNC_CODE = "93abf8c1-15e9-4672-8f65-4f40d51381b8";
-  // ------------------------------------------------------------------------
 
-
-  // ===== Nothing below here needs editing =================================
   var configured =
     FIREBASE_CONFIG.apiKey &&
     FIREBASE_CONFIG.apiKey.indexOf("PASTE") === -1 &&
@@ -59,70 +69,17 @@
 
   var todayStr = function () { return new Date().toDateString(); };
 
-  // Which checklist ticks consume which supplies, and how much per tick.
-  // One tick can draw down several supplies at once (e.g. "Skincare AM").
-  var CONSUMABLE_MAP = {
-    shake:   [{ key: "creatine", amt: 5 }, { key: "whey", amt: 30 }],
-    shake2:  [{ key: "whey", amt: 30 }],
-    shake3:  [{ key: "whey", amt: 30 }],
-    casein:  [{ key: "caseinprotein", amt: 30 }],
-    skinam:  [{ key: "facewash", amt: 1 }, { key: "vitc", amt: 0.5 }, { key: "spf", amt: 1 }, { key: "eyeserum", amt: 0.3 }],
-    skinpm:  [{ key: "facewash", amt: 1 }, { key: "niacinamide", amt: 0.5 }, { key: "moisturizer", amt: 1 }],
-    beard:   [{ key: "beardoil", amt: 0.5 }],
-    body:    [{ key: "biooil", amt: 3 }],
-    minox:   [{ key: "minoxidil", amt: 1 }, { key: "scalpserum", amt: 0.5 }],
-    shower:  [{ key: "shampoo", amt: 5 }, { key: "hairfiber", amt: 0.3 }, { key: "hairgel", amt: 2 }],
-    w1:      [{ key: "ahabha", amt: 1 }],
-    w2:      [{ key: "ahabha", amt: 1 }],
-  };
-
-  // Package sizes for tracked supplies (matches what's actually been bought).
-  var SUPPLIES = {
-    creatine:     { label: "Creatine Monohydrate",   size: 250, unit: "g" },
-    whey:         { label: "Whey Protein",           size: 2000,unit: "g" },
-    caseinprotein:{ label: "Casein Protein",         size: 1000,unit: "g" },
-    facewash:     { label: "Face Wash",              size: 59,  unit: "ml" },
-    vitc:         { label: "Vitamin C Serum",        size: 10,  unit: "ml" },
-    spf:          { label: "Sunscreen",              size: 50,  unit: "g" },
-    eyeserum:     { label: "Eye Cream (mCaffeine)",  size: 15,  unit: "g" },
-    niacinamide:  { label: "Niacinamide Serum",      size: 60,  unit: "ml" },
-    moisturizer:  { label: "Moisturizer",            size: 100, unit: "g" },
-    beardoil:     { label: "Beard Oil",              size: 30,  unit: "ml" },
-    biooil:       { label: "Bio-Oil / Cocoa Butter", size: 200, unit: "g" },
-    minoxidil:    { label: "Minoxidil",              size: 60,  unit: "ml" },
-    scalpserum:   { label: "Scalp Serum",            size: 100, unit: "ml" },
-    shampoo:      { label: "Shampoo",                size: 200, unit: "ml" },
-    hairfiber:    { label: "Hair Fiber",             size: 50,  unit: "g" },
-    hairgel:      { label: "Hair Gel",               size: 150, unit: "ml" },
-    ahabha:       { label: "AHA/BHA Exfoliant",      size: 30,  unit: "ml" },
-  };
-  window.__SUPPLIES = SUPPLIES;
-
-  // Normalize a stored blob + reset daily checks when the date rolls over.
-  // Before wiping yesterday's checks, roll them into the persistent usage log.
   function normalize(s) {
-    if (!s) return { date: todayStr(), checks: {}, weekly: {}, usage: {}, opened: {} };
+    if (!s) return { date: todayStr(), checks: {}, weekly: {}, meals: {} };
     var date = s.date || todayStr();
     var checks = s.checks || {};
     var weekly = s.weekly || {};
-    var usage = s.usage || {};
-    var opened = s.opened || {};
-    if (date !== todayStr()) {
-      var u = Object.assign({}, usage);
-      Object.keys(checks).forEach(function (id) {
-        if (!checks[id] || !CONSUMABLE_MAP[id]) return;
-        CONSUMABLE_MAP[id].forEach(function (c) {
-          var prev = u[c.key] || { totalUsed: 0 };
-          u[c.key] = { totalUsed: prev.totalUsed + c.amt, lastDate: date };
-        });
-      });
-      usage = u;
-      date = todayStr(); checks = {}; // new day → reset dailies
-    }
-    return { date: date, checks: checks, weekly: weekly, usage: usage, opened: opened };
+    var meals = s.meals || {};
+    if (date !== todayStr()) { date = todayStr(); checks = {}; meals = {}; }
+    return { date: date, checks: checks, weekly: weekly, meals: meals };
   }
 
-  var state = { date: todayStr(), checks: {}, weekly: {}, usage: {}, opened: {} };
+  var state = { date: todayStr(), checks: {}, weekly: {}, meals: {} };
   var subs = [];
   var ready = false;
   var persist = function () {};
@@ -140,22 +97,16 @@
     toggleDaily: function (id, data) {
       var c = Object.assign({}, state.checks);
       if (data !== undefined) {
-        c[id] = data; // e.g. { done: true, amount: '45m', notes: 'good' }
+        c[id] = data;
       } else {
-        c[id] = !c[id]; // legacy toggle
+        c[id] = !c[id];
       }
-      state = Object.assign({}, state, { checks: c });
+      state = { date: state.date, checks: c, weekly: state.weekly, meals: state.meals };
       notify(); persist();
     },
-    toggleWeekly: function (id) {
-      var w = Object.assign({}, state.weekly); w[id] = !w[id];
-      state = Object.assign({}, state, { weekly: w });
-      notify(); persist();
-    },
-    markOpened: function (key) {
-      var o = Object.assign({}, state.opened); o[key] = todayStr();
-      var u = Object.assign({}, state.usage); u[key] = { totalUsed: 0, lastDate: todayStr() };
-      state = Object.assign({}, state, { opened: o, usage: u });
+    toggleMeal: function (id) {
+      var m = Object.assign({}, state.meals); m[id] = !m[id];
+      state = { date: state.date, checks: state.checks, weekly: state.weekly, meals: m };
       notify(); persist();
     }
   };
@@ -178,12 +129,12 @@
     try {
       firebase.initializeApp(FIREBASE_CONFIG);
       var db = firebase.firestore();
-      try { db.enablePersistence({ synchronizeTabs: true }); } catch (e) {} // offline support
+      try { db.enablePersistence({ synchronizeTabs: true }); } catch (e) {}
       var ref = db.collection("protocol").doc(SYNC_CODE);
 
       persist = function () {
         ref.set(state, { merge: true }).catch(function (e) {
-          console.error("Protocol: save failed", e);
+          console.error("Protocol Schedule: save failed", e);
         });
       };
 
@@ -195,18 +146,17 @@
           state = norm;
           ready = true;
           notify();
-          if (needWrite) persist(); // create doc / write the daily reset back
+          if (needWrite) persist();
         },
         function (err) {
-          console.error("Protocol: sync error", err);
+          console.error("Protocol Schedule: sync error", err);
           if (!ready) { ready = true; notify(); }
         }
       );
 
-      // Safety net: if we never hear back (offline, bad config), don't hang on "Loading".
       setTimeout(function () { if (!ready) { ready = true; notify(); } }, 6000);
     } catch (e) {
-      console.error("Protocol: Firebase init failed, falling back to local", e);
+      console.error("Protocol Schedule: Firebase init failed", e);
       startLocal();
     }
   } else {
@@ -215,141 +165,75 @@
 })();
 </script>
 
-<!-- React + Babel (so the app can be written in JSX with no build step) -->
+<!-- React + Babel Standalone (Classic runtime required) -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-<script type="text/jsx-source" id="app-src">
-const { useState, useEffect } = React;
+<script type="text/babel" data-presets="react,stage-3">
+const { useState, useEffect, useMemo } = React;
 
-const weekPlan = [
-  { day: "Monday", focus: "Chest + Triceps", tag: "Push day — build the shelf" },
-  { day: "Tuesday", focus: "Back + Biceps", tag: "Pull day — build the V" },
-  { day: "Wednesday", focus: "Shoulders + Arms", tag: "Cap the delts, fill the sleeves" },
-  { day: "Thursday", focus: "Chest + Arms Volume", tag: "Volume day — chase the pump" },
-  { day: "Friday", focus: "Legs (Maintenance)", tag: "Basketball handles legs — this is insurance" },
-  { day: "Saturday", focus: "Upper Pump", tag: "Everything upper, light and fast" },
-  { day: "Sunday", focus: "Rest", tag: "Recovery. Stretch. Walk. Sleep." },
-];
-
-const dayExercises = {
-  0: [
-    { name: "Decline Push-ups", sub: "Incline DB Press", target: "Upper chest", sets: "4×12-15", how: "Feet on bed/chair, hands on floor. Slow 3-sec lowering, explosive up. Higher feet = more upper chest." },
-    { name: "Standard Push-ups", sub: "Flat Bench Press", target: "Mid chest", sets: "4×15-20", how: "Hands shoulder-width, body rigid. Touch chest to floor. Backpack on for extra load." },
-    { name: "Wide Push-ups + Squeeze", sub: "Cable Flyes", target: "Inner chest", sets: "3×15", how: "Extra-wide hands. At top, squeeze pecs together 2 seconds. Feel the inner chest." },
-    { name: "Chair Dips", sub: "Tricep Dips", target: "Triceps", sets: "3×12-15", how: "Hands on chair behind you, feet forward. Lower until upper arms parallel. Backpack on lap for load." },
-    { name: "Bodyweight Skull Crushers", sub: "Skull Crushers", target: "Triceps", sets: "3×10", how: "Hands on desk edge, body at angle. Bend ONLY at elbows to lower forehead toward hands, extend back." },
-    { name: "Diamond Push-ups to Failure", sub: "Close-grip Bench", target: "Triceps + inner chest", sets: "3×max", how: "Hands together under chest. Elbows tight. Burnout finisher — go to absolute failure." },
-  ],
-  1: [
-    { name: "Door Pull-ups / Towel Rows", sub: "Pull-ups", target: "Lats width", sets: "4×max", how: "Sturdy door with towel over top, or wrap towel around pillar and lean-back row. Failure each set." },
-    { name: "Backpack Rows", sub: "Barbell Rows", target: "Mid back thickness", sets: "3×12", how: "Backpack 10-15kg. Bend 45°, row to belly. Squeeze shoulder blades 2 sec at top." },
-    { name: "Prone Y-T-W Raises", sub: "Face Pulls", target: "Rear delts + posture", sets: "3×10 each", how: "Face down on bed. Y arms, hold 2s. T arms, hold 2s. W arms, hold 2s. One set = all three." },
-    { name: "Backpack Curls", sub: "Barbell Curls", target: "Biceps", sets: "3×12", how: "Grip backpack, curl it. 3-sec negative every rep — the lowering phase builds biceps." },
-    { name: "Towel Curl Isometrics", sub: "Hammer Curls", target: "Brachialis", sets: "3×30s hold", how: "Stand on towel, grip both ends, curl halfway and HOLD. 30 seconds of burn." },
-    { name: "Reverse Snow Angels", sub: "Rear Delt Flyes", target: "Rear delts", sets: "3×15", how: "Face down, sweep arms overhead like snow angel. Squeeze shoulder blades entire time." },
-  ],
-  2: [
-    { name: "Pike Push-ups", sub: "Overhead Press", target: "Front delts", sets: "4×10-12", how: "Hands on floor, feet on floor, hips HIGH. Lower head between hands. Feet on chair = harder." },
-    { name: "Lateral Raises (bottles/bags)", sub: "Lateral Raises", target: "Side delts (V-taper)", sets: "4×20", how: "Filled water bottles or bags. Raise to shoulder height. 3-sec descent. High reps = side delt growth." },
-    { name: "Reverse Snow Angels", sub: "Rear Delt Flyes", target: "Rear delts", sets: "3×15", how: "Face down, arms sweep overhead. Thumbs up. Squeeze upper back hard." },
-    { name: "Close-grip Push-ups", sub: "Close-grip Bench", target: "Triceps", sets: "3×12", how: "Hands inside shoulder width, elbows tucked to ribs. All effort through triceps." },
-    { name: "Backpack Overhead Extension", sub: "Overhead Tricep Ext", target: "Long head triceps", sets: "3×12", how: "Backpack behind head, both hands. Extend overhead. Elbows forward and close to head." },
-    { name: "Backpack Curls (lean-back)", sub: "Incline Curls", target: "Biceps (stretched)", sets: "3×12", how: "Sit on bed edge, lean back. Curl from stretched position — lean-back makes biceps work harder." },
-  ],
-  3: [
-    { name: "Standard Push-ups (high rep)", sub: "DB Squeeze Press", target: "Chest pump", sets: "3×20", how: "Squeeze chest at top of every rep. Backpack on if easy. Volume day = more reps." },
-    { name: "Push-ups to Failure", sub: "—", target: "Chest burnout", sets: "3 sets max", how: "Absolute max reps × 3 sets. 60 sec rest. Track total — beat it next week." },
-    { name: "Floor Flyes (towels)", sub: "Cable Crossovers", target: "Chest stretch", sets: "3×12", how: "Smooth floor, hands on towels. Slide wide (control!), slide back squeezing. Brutal." },
-    { name: "Backpack Preacher Curls", sub: "Preacher Curls", target: "Biceps peak", sets: "3×12", how: "Lean arm over pillow on bed edge. Curl with zero body swing — pure isolation." },
-    { name: "Chair Dips (high rep)", sub: "Tricep Pushdowns", target: "Triceps pump", sets: "3×15", how: "Higher reps than Monday. Feet elevated on another chair if easy." },
-    { name: "Curl + Diamond Push-up Superset", sub: "—", target: "Arm finisher", sets: "3 rounds", how: "10 curls → max diamond push-ups. No rest between. 60 sec between rounds. Arms should be screaming." },
-  ],
-  4: [
-    { name: "Bodyweight Squats", sub: "Barbell Squats", target: "Quads + glutes", sets: "3×20", how: "Deep as possible. Knees track over toes, don't cave in. Push through heels. Backpack for load." },
-    { name: "Bulgarian Split Squats", sub: "Leg Press", target: "Quads (single leg)", sets: "3×12 each", how: "Rear foot on bed/chair. Lower front thigh to parallel. Bodyweight alone is plenty hard." },
-    { name: "Single-leg RDL", sub: "Romanian Deadlift", target: "Hamstrings", sets: "3×12 each", how: "One leg, hinge forward, back straight. Feel hamstring stretch. Hold backpack for load." },
-    { name: "Single-leg Calf Raises", sub: "Machine Calf Raises", target: "Calves", sets: "4×20 each", how: "Edge of stair, one foot. Lower heel BELOW step, raise HIGH. Full range = full calves." },
-    { name: "Glute Bridge March", sub: "—", target: "Glute activation", sets: "3×20", how: "Hold bridge, alternate lifting feet 2 inches like marching. Keep hips level." },
-  ],
-  5: [
-    { name: "Decline Push-ups (light)", sub: "Incline Press", target: "Upper chest", sets: "3×12", how: "Pump day — focus on squeeze, not grinding. Controlled tempo." },
-    { name: "Lateral Raises (high rep)", sub: "Lateral Raises", target: "Side delts", sets: "4×20", how: "Light, crazy reps. Chase the burn. Side delts need volume over weight." },
-    { name: "Underhand Towel Rows", sub: "Chin-ups", target: "Lats + biceps", sets: "3×max", how: "Underhand grip on towel rows — shifts emphasis to biceps. Or underhand door pull-ups." },
-    { name: "Push-up Circuit", sub: "—", target: "Full chest + tris", sets: "3 rounds", how: "10 wide + 10 standard + 10 diamond. No rest between. 60 sec between rounds." },
-    { name: "Curl + Extension Superset", sub: "—", target: "Arm pump", sets: "3 rounds", how: "12 curls straight into 12 overhead extensions, same backpack. Pure pump." },
-    { name: "Y-T-W + Doorway Stretch", sub: "—", target: "Posture finisher", sets: "2 rounds", how: "Y-T-W raises → immediately doorway stretch 30 sec. Always end Saturday with this." },
-  ],
-  6: []
+// Color Design System (Dark sleek palette)
+const c = {
+  bg: "#06060a",
+  s1: "#111115",
+  s2: "#19191e",
+  s3: "#23232a",
+  br: "rgba(255,255,255,0.08)",
+  tx: "#f4f1ec",
+  dm: "#8e8b88",
+  ac: "#d4f244", // electric lime accent
+  acd: "rgba(212,242,68,0.12)",
+  gn: "#65cfa0",
+  gnd: "rgba(101,207,160,0.12)",
+  or: "#f0b84a",
+  ord: "rgba(240,184,74,0.12)",
+  rd: "#f09595",
+  rdd: "rgba(240,149,149,0.12)",
+  cy: "#70aee8",
+  cyd: "rgba(112,174,232,0.12)",
 };
 
-const alwaysDo = [
-  { group: "🦵 Knee Correction (daily)", items: [
-    { name: "Clamshells", sets: "3×20 each", how: "Side-lying, knees bent 90°, feet together. Open top knee slowly — 2 sec up, 2 sec down." },
-    { name: "Single-leg Glute Bridge", sets: "3×12 each", how: "One foot flat, other leg straight up. Drive hips up, squeeze glute, 2 sec hold at top." },
-    { name: "Wall Sit", sets: "3×30-45s", how: "Back on wall, thighs parallel. Push knees OUT — don't let them cave." },
-    { name: "Side-lying Leg Raises", sets: "3×15 each", how: "Top leg straight, toe turned slightly DOWN. Raise slowly. Feel it in outer glute." },
-    { name: "Step-downs off Stair", sets: "3×10 each", how: "One leg on step, slowly lower other foot — 3 sec descent. Builds VMO for knee stability." },
-  ]},
-  { group: "🧍 Posture (daily)", items: [
-    { name: "Chin Tucks", sets: "3×15 (5s hold)", how: "Pull chin straight back, double chin. Hold 5 sec each. Perfect during study breaks." },
-    { name: "Doorway Chest Stretch", sets: "3×30s", how: "Arms on doorframe at 90°, lean forward. Stretches chest and front delts." },
-    { name: "Prone Y-T-W Raises", sets: "3×10 each", how: "Face down on bed. Y up 2s, T out 2s, W back 2s. Builds the muscles that pull shoulders back." },
-  ]},
-];
-
-const dailyChecklist = [
-  { group: "Morning", items: [
-    { id: "wimhof_am", label: "Wim Hof Breathing (3 rounds)", t: "6:00" },
-    { id: "bball", label: "Basketball — 1 hour", t: "6:15" },
-    { id: "lift", label: "Today's workout (see Workout tab)", t: "7:15" },
-    { id: "shake2", label: "Post-workout protein shake (whey)", t: "7:20" },
-    { id: "knee", label: "Knee correction exercises", t: "7:45" },
-    { id: "hang", label: "Dead hangs (rowing bar) — 3×30-45s", t: "7:47" },
-    { id: "shower", label: "Shower + fibers + light spray", t: "7:50" },
-    { id: "skinam", label: "Skincare AM — wash → Vit C → SPF → eye serum", t: "8:05" },
-    { id: "meal1", label: "Meal 1 (eggs + chicken/paneer + veggies)", t: "8:10" },
-  ]},
-  { group: "Study & Afternoon", items: [
-    { id: "nback", label: "Dual N-Back — 20 min", t: "8:15" },
-    { id: "study1", label: "Deep study block (hardest material)", t: "8:35" },
-    { id: "chin", label: "Chin tucks during break — 3×15", t: "—" },
-    { id: "shake", label: "Protein shake #1 + 5g creatine", t: "12:30" },
-    { id: "math", label: "Mental math — 5 min", t: "12:45" },
-    { id: "study2", label: "Study block 2 (Anki + lighter)", t: "1:00" },
-    { id: "water3", label: "3L water by now ✓", t: "3:00" },
-  ]},
-  { group: "Evening", items: [
-    { id: "meal2", label: "Meal 2 (chicken/fish + salad + dal)", t: "4:00" },
-    { id: "study3", label: "Study block 3 (practice problems)", t: "4:30" },
-    { id: "cardio", label: "Cycling or bodyweight HIIT — 15 min", t: "7:00" },
-    { id: "dance", label: "Dance practice (YouTube) — 30 min", t: "7:20" },
-    { id: "shake3", label: "Protein shake #3 (whey)", t: "7:55" },
-    { id: "meal3", label: "Meal 3 — yogurt/paneer (if needed)", t: "8:00" },
-    { id: "skinpm", label: "Skincare PM — wash → niacinamide → moisturizer", t: "9:00" },
-    { id: "beard", label: "Beard oil + brush", t: "9:05" },
-    { id: "body", label: "Body moisturize + bio-oil on stomach", t: "9:10" },
-    { id: "journal", label: "First-principles journal — 10 min", t: "10:00" },
-    { id: "casein", label: "Casein shake (before bed)", t: "10:05" },
-    { id: "minox", label: "Minoxidil on scalp", t: "10:15" },
-    { id: "water4", label: "4L water total ✓", t: "—" },
-    { id: "sleep", label: "Lights out by 10:30", t: "10:30" },
-  ]},
-  { group: "Weekly Tasks", items: [
-    { id: "w1", label: "AHA/BHA exfoliant — session 1", t: "" },
-    { id: "w2", label: "AHA/BHA exfoliant — session 2", t: "" },
-    { id: "w3", label: "Sheet mask", t: "" },
-    { id: "w4", label: "Clarifying shampoo deep clean", t: "" },
-    { id: "w5", label: "Eyebrow check / threading", t: "" },
-    { id: "w6", label: "Body composition scan (watch)", t: "" },
-    { id: "w7", label: "Tape measurements", t: "" },
-    { id: "w8", label: "Nails trimmed + clean", t: "" },
-  ]},
+// Daily Timetable Checklist (Zero intimate health/weight metrics)
+const timetableBlocks = [
+  {
+    group: "☀️ Morning Routine",
+    items: [
+      { id: "wimhof_am", time: "6:00 AM", label: "Wim Hof Breathing", desc: "3 rounds for oxygenation & alertness" },
+      { id: "bball", time: "6:15 AM", label: "Basketball Session", desc: "1-hour court cardio & drills" },
+      { id: "lift", time: "7:15 AM", label: "Morning Training", desc: "Daily strength workout time block" },
+      { id: "knee", time: "7:45 AM", label: "Knee Stability Work", desc: "Clamshells & bridge activation" },
+      { id: "hang", time: "7:47 AM", label: "Dead Hangs", desc: "Rowing bar — posture & spinal decompression" },
+      { id: "shower", time: "7:50 AM", label: "Shower & Ready", desc: "Morning refresh & prep" },
+      { id: "meal1", time: "8:10 AM", label: "Breakfast (Meal 1)", desc: "Eggs, high-protein & fresh veggies" },
+    ]
+  },
+  {
+    group: "📖 Academic & Study Blocks (XLRI Term IV)",
+    items: [
+      { id: "nback", time: "8:15 AM", label: "Dual N-Back Session", desc: "20-minute focus & cognitive drill" },
+      { id: "study1", time: "8:35 AM", label: "Deep Study Block 1", desc: "Core coursework & hardest readings" },
+      { id: "shake", time: "12:30 PM", label: "Midday Fuel", desc: "Protein shake + hydration break" },
+      { id: "math", time: "12:45 PM", label: "Mental Math Drill", desc: "5-minute quantitative calculation drill" },
+      { id: "study2", time: "1:00 PM", label: "Study Block 2", desc: "Anki cards, cases & lecture notes" },
+      { id: "water3", time: "3:00 PM", label: "Hydration Milestone", desc: "3 Liters water goal completed ✓" },
+    ]
+  },
+  {
+    group: "🌙 Evening Routine",
+    items: [
+      { id: "meal2", time: "4:00 PM", label: "Dinner Prep / Meal 2", desc: "Lean protein, salad & dal" },
+      { id: "study3", time: "4:30 PM", label: "Study Block 3", desc: "Exam practice problems & synthesis" },
+      { id: "cardio", time: "7:00 PM", label: "Evening Cardio Block", desc: "15-minute cycling or conditioning" },
+      { id: "dance", time: "7:20 PM", label: "Dance Practice", desc: "30 minutes — learning choreography from YouTube" },
+      { id: "meal3", time: "8:00 PM", label: "Light Evening Snack", desc: "Greek yogurt / protein snack" },
+      { id: "wind", time: "9:30 PM", label: "Wind Down & Plan", desc: "Prepare schedule for tomorrow" },
+    ]
+  }
 ];
 
 function getAdjustedChecklist(plan) {
-  const adjusted = JSON.parse(JSON.stringify(dailyChecklist));
+  const adjusted = JSON.parse(JSON.stringify(timetableBlocks));
   if (!plan) return adjusted;
 
   const d = new Date();
@@ -400,17 +284,18 @@ function getAdjustedChecklist(plan) {
   if (earliestMorning < 8.5 * 60) {
     const shiftMins = (8.5 * 60) - earliestMorning; 
     adjusted.forEach(group => {
-      if (group.group === "Morning" || group.group === "Study & Afternoon") {
+      if (group.group === "☀️ Morning Routine" || group.group === "📖 Academic & Study Blocks (XLRI Term IV)") {
         group.items.forEach(item => {
-           if (item.t && item.t !== "—" && item.t !== "") {
-              const itemMins = parseTime(item.t);
+           if (item.time && item.time !== "—" && item.time !== "") {
+              const itemMins = parseTime(item.time);
               if (itemMins < 12 * 60) {
                  let newMins = itemMins - shiftMins;
                  if (newMins < 0) newMins += 24 * 60;
                  let h = Math.floor(newMins / 60);
                  let min = newMins % 60;
+                 let ampm = h >= 12 ? "PM" : "AM";
                  let formattedH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-                 item.t = `${formattedH}:${String(min).padStart(2, "0")}`;
+                 item.time = `${formattedH}:${String(min).padStart(2, "0")} ${ampm}`;
                  item.shifted = true;
               }
            }
@@ -421,15 +306,16 @@ function getAdjustedChecklist(plan) {
 
   if (hasEveningConflict) {
     adjusted.forEach(group => {
-      if (group.group === "Evening") {
+      if (group.group === "🌙 Evening Routine") {
         group.items.forEach(item => {
-           if (["cardio", "dance", "shake3"].includes(item.id)) {
-              const itemMins = parseTime(item.t);
+           if (["cardio", "dance", "meal3"].includes(item.id)) {
+              const itemMins = parseTime(item.time);
               let newMins = itemMins - 120;
               let h = Math.floor(newMins / 60);
               let min = newMins % 60;
+              let ampm = h >= 12 ? "PM" : "AM";
               let formattedH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-              item.t = `${formattedH}:${String(min).padStart(2, "0")}`;
+              item.time = `${formattedH}:${String(min).padStart(2, "0")} ${ampm}`;
               item.shifted = true;
            }
         });
@@ -440,472 +326,394 @@ function getAdjustedChecklist(plan) {
   return adjusted;
 }
 
-const shoppingList = [
-  { cat: "💊 Supplements", items: [
-    { n: "Creatine Monohydrate", pick: "Any '100% Creatine Monohydrate' — Asitis/Fast&Up", p: "₹350-450",
-      goal: "More strength/power in lifts so you keep building or holding muscle while eating at a deficit — the thing that actually protects your metabolism during the cut.",
-      why: "Creatine monohydrate is the single most-proven strength supplement that exists. It lets your muscles regenerate ATP faster, meaning more reps at the same weight, which over months is more training stimulus than you'd get without it.",
-      choice: "Creatine monohydrate is one molecule — every brand's is chemically identical, there's no 'better' version. HCl/buffered/ethyl-ester 'upgrades' are marketing, not backed by better absorption in the research. So we pick on price + trust, not brand: Asitis/Fast&Up are India-based (fresher stock, not gray-market), commonly batch-tested, and a fraction of the price of MuscleBlaze/ON for the identical compound." },
-    { n: "Whey Protein 2kg", pick: "Asitis Whey Concentrate — lab tested", p: "₹3,200-3,800",
-      goal: "Close the gap between your campus food reality (paneer bhurji ×2 + 5-6 eggs, ~90g protein/day) and your ~190-210g/day target — this is now 3 scoops/day (post-workout, midday, evening), not an occasional shake.",
-      why: "Protein is what stops you losing muscle along with fat when you're eating less. Whey specifically digests fast and is high in leucine, the amino acid that most directly triggers muscle repair.",
-      choice: "Bumped to a 2kg tub, not 1kg, because the math changed: at 3 scoops/day (~90g powder/day) a 1kg tub lasts barely 11 days — you'd be reordering constantly and paying more per gram in shipping/hassle. 2kg lasts ~22 days at this rate. Concentrate over isolate: isolate strips more lactose/fat for a purity gain most people don't need, and costs more for it. Lab-tested brand on purpose: whey protein content is one of the most commonly adulterated labels in India (maltodextrin/cheap amino padding to inflate the protein% claim)." },
-    { n: "Casein Protein 1kg", pick: "Any 'Micellar Casein', lab-tested — MyProtein or Avvatar", p: "₹1,800-2,200",
-      goal: "Cover the ~8-hour overnight fast without muscle breakdown — whey digests in ~1-2 hours, so a shake at 12:30 or 7:55pm has fully cleared your system long before you wake up.",
-      why: "Casein is the same milk protein family as whey, but micellar casein gels in the stomach and releases amino acids slowly over 6-8 hours — it's specifically suited to the one meal-gap in your day that whey can't cover: sleep.",
-      choice: "Micellar casein specifically (not 'casein concentrate' or blends) — that's the slow-release form the overnight-use case depends on. Otherwise it's a commodity like whey: pick on price + lab testing, not brand. One scoop before bed (10:05pm) adds ~24g protein without needing to wake up and eat." },
-    { n: "Fish Oil Omega-3", pick: "HK Vitals — check 500mg+ DHA", p: "₹250-350",
-      goal: "Lower training-induced inflammation and support joints — relevant because you're running high training volume on a deficit, which is harder on recovery.",
-      why: "The active compounds are EPA and DHA specifically, not 'fish oil' as a category.",
-      choice: "Most cheap fish oil in India lists only 'Fish Oil 1000mg' on the front without breaking out actual EPA+DHA — that number can be under 300mg of the 1000. HK Vitals is picked because it states DHA content directly on the label. The rule: read the EPA+DHA mg, ignore the total oil weight." },
-    { n: "Multivitamin", pick: "Zingavita or Healthvit", p: "₹200-300",
-      goal: "Insurance against micronutrient gaps — when you cut total food volume, micronutrients drop even if you're still hitting your protein number.",
-      why: "Broad vitamin-mineral coverage at RDA levels, not a performance product.",
-      choice: "This is a commodity category — no brand outperforms another at standard doses. Picked these two for sane dosing without mega-dosing the fat-soluble vitamins (A/D/E/K), which can actually accumulate to harmful levels if you stack them with fortified foods elsewhere in your diet." },
-    { n: "Biotin 10,000mcg", pick: "HK Vitals Biotin", p: "₹200",
-      goal: "Paired with the minoxidil below — general hair-health support during the shedding/regrowth phase.",
-      why: "⚠ Worth knowing: biotin's evidence for hair growth is weak unless you have an actual deficiency (rare). It's the least evidence-backed item in this whole list — keep it if you want the insurance, but don't expect it to move the needle on its own. Separately: high-dose biotin can throw off certain blood tests (thyroid panels, troponin/cardiac tests) — mention you're taking it if you ever get bloodwork done.",
-      choice: "D-Biotin is D-Biotin regardless of brand — picked purely on being a cheap, reliable source." },
-  ]},
-  { cat: "✨ Skincare", items: [
-    { n: "Gentle Face Wash", pick: "Simple Kind to Skin / Cetaphil", p: "₹200-350",
-      goal: "Clean skin without stripping the barrier you need intact for the actives below (Vit C, Niacinamide, Retinol, AHA/BHA) to actually be tolerable long-term.",
-      why: "Sulfate-heavy cleansers strip natural oil, which triggers rebound oiliness and makes every other active in this routine sting more.",
-      choice: "Simple/Cetaphil are the default 'boring' cleansers dermatologists reach for precisely because they don't fight with the actives layered on top — a 'purifying' or foaming cleanser marketed for acne would undercut the rest of this list." },
-    { n: "Vitamin C Serum 10%", pick: "Minimalist or Derma Co 10%", p: "₹250-400",
-      goal: "Antioxidant protection plus gradual fading of post-acne marks/dullness.",
-      why: "L-ascorbic acid is the only form of Vitamin C with strong clinical backing. Derivatives (magnesium ascorbyl phosphate, ethyl ascorbic acid) are gentler but noticeably weaker.",
-      choice: "Chose potency over gentleness: 10% L-AA is well tolerated by most skin and the visible difference vs. a derivative version is large. Don't go past 15-20% — irritation rises faster than benefit past that point. Use AM, under sunscreen." },
-    { n: "Sunscreen SPF 50", pick: "Re'equil Oxybenzone & OMC Free Sunscreen, 50g — ₹355", p: "₹355 (₹710/100g)",
-      goal: "This is the single highest-ROI product on the entire list — it protects every other active you're paying for. Vit C, Retinol, and AHA/BHA all increase photosensitivity, so skipping this undoes the rest of the routine.",
-      why: "Blocks UV damage that causes photoaging and the exact hyperpigmentation you're trying to fade with the Vitamin C.",
-      choice: "Checked live Amazon listings: this 50g Oxybenzone/OMC-free version is ₹710/100g vs the Re'equil Ultra Matte Dry Touch at ₹1,550/100g — less than half the cost per gram, and it's formulated for oily/acne-prone/sensitive skin, which matters since you're layering Niacinamide, Retinol and AHA/BHA on this skin and don't want a sunscreen clogging pores underneath them. Trade-off: PA+++ here vs PA++++ on the Ultra Matte (slightly less UVA protection) — worth the upgrade only if you're regularly outdoors midday for long stretches. Skip the 6g trial pack either way, worst ₹/g on the page." },
-    { n: "Niacinamide 10%", pick: "Minimalist 10% Niacinamide + Zinc, 60ml — ₹899 (₹809 w/ coupon)", p: "₹809-899 (₹13.5/ml)",
-      goal: "Oil control, smaller-looking pores, calms active breakouts.",
-      why: "Vitamin B3 — reduces oil production and has a mild anti-inflammatory effect, plus supports barrier function.",
-      choice: "10% is the well-studied sweet spot — 20% versions show diminishing (sometimes irritating) returns. Checked live Amazon listings: this 60ml Minimalist bottle is ₹13.5/ml with its coupon — cheaper per ml than The Derma Co's 30ml (₹14.2/ml) and far cheaper than any of the 10ml sizes (₹17-18/ml for the same formula in a smaller bottle). It also has the most reviews by far (26K) and highest rating (4.2★) of any option on the page — skipped a Molecular Company listing that was nominally ₹0.1/ml cheaper because it had a single rating, not worth the risk on a facial active. Same brand as your Vit C/moisturizer/retinol/AHA-BHA, so it consolidates checkout too." },
-    { n: "Moisturizer", pick: "Dot & Key Barrier Repair Moisturizer, 100g — ₹316", p: "₹316 (₹316/100g)",
-      goal: "Replace the barrier lipids that Niacinamide, Vit C, Retinol and AHA/BHA all strip to some degree — this is what determines whether you can actually tolerate the rest of the stack long-term, not optional.",
-      why: "Ceramides + hyaluronic acid actively repair the skin barrier, versus a plain occlusive that just sits on top.",
-      choice: "Checked live Amazon listings for 'moisturiser': this one explicitly states 5 Ceramides + HA and is Non-Comedogenic — important since your skin is already carrying Niacinamide/Vit C/Retinol/AHA-BHA and can't afford a pore-clogging cream. 4.3★, 14.9K ratings, Best Seller badge, best ₹/g of any ceramide-labeled option on the page. Ruled out Simple Barrier Repair+ (same idea, more than double the cost per gram and far fewer reviews), anything with Niacinamide already mixed in (redundant with your separate serum), and the generic Nivea/Pond's body-lotion-style creams that don't specify ceramide content at all." },
-    { n: "Retinol (Week 5+)", pick: "Minimalist 0.3% Retinol & Q10 Serum, 30ml — ₹527", p: "₹527 (₹17.6/ml)",
-      goal: "Collagen stimulation, faster cell turnover, prevention of fine lines/texture/acne over months.",
-      why: "Vitamin A derivative — the most-proven anti-aging/anti-acne topical that exists, but also the most likely to irritate if you start too early or too strong.",
-      choice: "Deliberately sequenced to week 5, not day 1: introducing it before your skin has adjusted to the rest of the routine spikes irritation and makes it impossible to tell which product caused a reaction. 0.3% is a low starter strength on purpose. Checked live Amazon listings: the RE'equil 0.1% cream (Amazon's Choice) is actually a worse deal — a third of the retinol concentration at a higher price per volume. Skipped Minimalist's own 0.6%/2% versions — too strong to start with. Size call: if this is your genuine first time on retinol, get the 10ml (~₹202 with coupon) first so a bad reaction only costs ₹202, not ₹527 — go straight to the 30ml only if you already know you tolerate retinol. PM only, never combine with the Vit C application (one AM, one PM)." },
-    { n: "Eye Serum", pick: "Skip, or Vilvah Under Eye Cream, ₹502 if you want one", p: "₹0-502",
-      goal: "Reduce puffiness/dark circles — purely cosmetic quality-of-life, lowest priority item in this entire list.",
-      why: "Caffeine is the one ingredient here with real (if modest) evidence — it constricts blood vessels and reduces fluid pooling under the eyes.",
-      choice: "Checked live Amazon listings for 'eye serum' — almost nothing there is a plain caffeine formula. Most (Minimalist Vitamin K+Retinal, Beauty of Joseon) are retinal-based, which would stack MORE Vitamin-A exposure right under your eyes on top of the Retinol you're already using elsewhere — a real irritation risk, not a upgrade. Given this was already the most skippable item on the list, recommend skipping it entirely rather than buying a mismatched product. If you still want something, Vilvah Under Eye Cream (₹502, 4.1★, 667 ratings) is a plain hydrating option with no conflicting actives." },
-    { n: "AHA/BHA Exfoliant", pick: "Minimalist 10% AHA BHA Exfoliating Serum, 30ml — ₹539 (₹485 w/ coupon)", p: "₹485-539",
-      goal: "Unclog pores and exfoliate dead skin — helps with body/back or facial acne and rough texture.",
-      why: "Salicylic acid (BHA) is oil-soluble, so it gets inside the pore itself, unlike an AHA (glycolic/lactic) which mostly works on the surface.",
-      choice: "Checked live Amazon listings: most results for this search are 25-30% AHA 'peeling solutions' meant for occasional weekend use, not the regular-use exfoliant you need alongside an already-active-heavy routine. This one is explicitly labeled 'For Beginners,' combines a moderate 10% AHA+BHA rather than a harsh peel, and has 4.2★ across 3.4K ratings." },
-  ]},
-  { cat: "💇 Hair", items: [
-    { n: "Minoxidil 5%", pick: "Morr-F 5% (₹731, w/ finasteride) or TATA 1MG 5% (₹536, minoxidil-only)", p: "₹536-731",
-      goal: "Slow shedding and stimulate regrowth — this is the core item the rest of the Hair category supports (biotin, scalp serum, shampoo aren't separate purchases, they're all in service of this one).",
-      why: "Minoxidil is the only OTC topical with real randomized-trial evidence for regrowth (the other proven option, finasteride, is prescription-only in most places).",
-      choice: "⚠ Decide this one deliberately, don't default into it: Morr-F combines minoxidil WITH finasteride in one product; a minoxidil-only product skips the finasteride. Finasteride is a hormonal drug (blocks DHT) with a small but real minority reporting libido/mood side effects. Checked live pricing: Morr-F 60ml is ₹731, but Tugain (the other minoxidil-only brand often recommended) is actually MORE expensive at ₹909.70 for the same 60ml despite having less in it — TATA 1MG's own Minoxidil 5%, 60ml at ₹536 (or pack-of-2 at ₹867, ₹7.23/ml) is the better-priced minoxidil-only option from a trusted pharmacy brand. If you want the stronger combined effect, Morr-F; if you want to start conservative on minoxidil alone, TATA 1MG over Tugain." },
-    { n: "Sulfate-free Shampoo", pick: "Love Beauty & Planet Argan Oil & Lavender, 400ml — ₹395", p: "₹395",
-      goal: "Avoid accelerating dryness/shedding — especially relevant since minoxidil itself can already dry out the scalp as a side effect, so you don't want the shampoo compounding that.",
-      why: "Sulfates (SLS/SLES) strip scalp oil aggressively, which is the opposite of what you want while running minoxidil.",
-      choice: "Checked live Amazon listings: this is the most-reviewed genuinely sulfate-free option on the page (4.2★, 7.1K ratings) at a reasonable ₹98.75/100ml. Ruled out a Dove 'Density Boost' shampoo that looked appealing on paper (Niacinamide + Zinc-Peptides) but has only 101 ratings at 3.8★ — not worth the risk on your scalp while running minoxidil, an unproven product with a mediocre rating." },
-    { n: "Scalp Serum", pick: "Deconstruct Anti-Dandruff Scalp Serum, 2% Salicylic Acid, 100ml — ₹448", p: "₹448 (₹4.48/ml)",
-      goal: "Keep follicles clear of sebum/product buildup so the minoxidil actually reaches the follicle instead of sitting on top of buildup.",
-      why: "Same logic as the facial BHA exfoliant — salicylic acid is oil-soluble, so it unclogs rather than just sitting on the surface.",
-      choice: "Re-searched with the exact term 'salicylic acid scalp serum' (the generic 'scalp serum' search kept surfacing the wrong growth-peptide category) and found a real match: explicit 2% Salicylic Acid (same concentration as your facial BHA), sulphate & paraben-free, Amazon's Choice, 4.1★ across 1.2K ratings — by far the largest, most trustworthy review base among the genuine salicylic-acid options (a Naturali alternative existed at a similar price but only had 70 ratings)." },
-    { n: "Light Hairspray", pick: "Schwarzkopf TAFT Power V12 Gel, 150ml — ₹320.90 (₹305 w/ coupon)", p: "₹305-321",
-      goal: "Cosmetic hold without weighing hair down — heavy-hold sprays make thinning hair look flatter and more see-through at the scalp.",
-      why: "Hold strength is the spec that matters for the flattening concern, but alcohol content is what actually damages hair fibers over repeated use.",
-      choice: "Switched format on purpose: standard aerosol hairsprays dry hard because they're alcohol-based, and that same alcohol is what dries out and weakens the hair shaft over time — directly the 'don't interrupt the hair fibres' concern. This gel states 'No Alcohol, No Sulphate' explicitly on the label, plus 'non-stick, easy to wash off' (no stiff residue sitting on strands between washes), 4.2★ across 447 ratings. Every hairspray found on repeated searches was either Strong/Extreme hold or had no alcohol-free claim to verify against — this is the one product across all those searches that actually satisfies both the hold-strength spec and the fiber-safety constraint at once." },
-    { n: "Satin Pillowcase", pick: "GO WELL Satin Silk Pillow Covers, Pack of 2, 600TC — ₹265", p: "₹265",
-      goal: "Reduce nightly friction/breakage on hair that's already stressed from shedding.",
-      why: "Cotton pulls moisture out of hair and creates friction overnight; satin doesn't grab hair the same way.",
-      choice: "This is a material-science claim (satin vs cotton), not a brand claim, but checked live listings anyway to avoid a bad first purchase: this pack-of-2 has the most reviews by far (4.3★, 7.1K ratings) and a 'Best Seller' badge, plus the highest thread count (600TC) among the well-reviewed options. A ₹174 'Amazon's Choice' option exists but has only 557 ratings — GO WELL's review volume is the safer bet, and the 2-pack lets you rotate while one's in the wash." },
-  ]},
-  { cat: "🧔 Grooming", items: [
-    { n: "Beard Oil", pick: "DIY: Jojoba + Tea Tree drops", p: "₹150-200",
-      goal: "Soften beard hair and moisturize the skin underneath to prevent itchiness/beardruff.",
-      why: "The carrier oil (jojoba) does the actual moisturizing work; tea tree oil adds a mild antimicrobial/scent element.",
-      choice: "Chose DIY deliberately over commercial beard oil brands — commercial bottles are ~90% carrier oil with a few drops of essential oil added, marked up 5-10x over buying the same components separately. Same function, fraction of the cost." },
-    { n: "Beard Trimmer", pick: "Havells or Nova", p: "₹600-800",
-      goal: "Maintain beard length/shape at home instead of paying for barber trims repeatedly.",
-      why: "Blade sharpness and motor durability are what actually matter for trim quality — not the brand badge.",
-      choice: "Havells/Nova are reliable mid-range Indian brands that cover this. Philips/Braun exist at 2-3x the price for the same core function at this use case — that premium buys marginal quality-of-life features (more guard lengths, quieter motor), not a materially better trim." },
-    { n: "Boar Bristle Brush", pick: "Any boar bristle brush", p: "₹150-200",
-      goal: "Distribute natural beard/scalp oils evenly and detangle without static.",
-      why: "Natural bristle grabs hair and carries sebum along it; plastic bristles generate static and just push hair around instead.",
-      choice: "Material (natural bristle) is the actual spec — brand doesn't change the mechanism." },
-    { n: "Bio-Oil / Cocoa Butter", pick: "Palmer's Cocoa Butter", p: "₹200-250",
-      goal: "Support skin elasticity specifically because you're targeting fast fat loss (100.4→86kg) — skin can retract faster than collagen remodels, which is what causes stretch marks during a rapid cut.",
-      why: "Cocoa butter + Vitamin E are the long-standing 'boring but reasonable' choice here.",
-      choice: "Being honest: clinical evidence for ANY topical actually preventing stretch marks is weak overall — no product has strong RCT backing for this. Picked Palmer's because it's cheap and definitely won't hurt, and the daily massage motion of applying it may matter as much as the ingredient itself. Don't expect a guarantee from this one." },
-  ]},
-  { cat: "🏠 Room Equipment", items: [
-    { n: "Resistance Band Set", pick: "Any loop set on Amazon", p: "₹200-300",
-      goal: "At-home warm-up, joint activation, and mobility work — fills the gap on rest days or when the gym isn't accessible.",
-      why: "Bands give continuous tension through a range of motion that bodyweight-only movements can't replicate for activation work.",
-      choice: "Latex loop bands are a commodity — tension consistency doesn't meaningfully differ across brands, so buy on price." },
-    { n: "Yoga Mat 6mm", pick: "Any 4-6mm EVA mat", p: "₹200-300",
-      goal: "Cushioning for floor work (mobility, ab work, stretching, knee-correction drills).",
-      why: "6mm specifically chosen over a thinner 3-4mm 'yoga' mat because it's kinder on knees/joints during floor exercises — relevant given the knee-correction work already in your routine.",
-      choice: "Thickness is the spec that matters here, not brand — anything in the 4-6mm EVA foam range does the job." },
-    { n: "Heavy Backpack", pick: "Your backpack + old books", p: "₹0",
-      goal: "A free weighted-implement substitute for loaded carries/rucking/weighted lunges.",
-      why: "External load is external load — your muscles don't know whether resistance came from a ₹6,000 weight vest or a backpack full of textbooks.",
-      choice: "Zero cost, uses what you already own — no reason to buy a weighted vest for this specific use case unless you want the convenience of even weight distribution." },
-  ]},
-  { cat: "🧩 Consider Adding (not yet on your list)", items: [
-    { n: "Kitchen Scale", pick: "Any digital scale, 1g precision — ₹300-500 on Amazon", p: "₹300-500",
-      goal: "Accurate portion sizes for your calorie/protein targets — this is probably the single highest-leverage item missing from the whole list.",
-      why: "Eyeballing portions is the most common reason a 'correct on paper' diet doesn't produce the expected result — a 200g vs 150g chicken breast 'guess' is a real swing on your daily protein/calorie math, every day, compounding over weeks.",
-      choice: "Any basic digital kitchen scale works identically — no premium version needed, this is pure commodity electronics." },
-    { n: "Body Tape Measure", pick: "Any soft tape measure — ₹100-150", p: "₹100-150",
-      goal: "Track recomposition (waist/chest/arm) that the scale alone can't show — if you're losing fat and gaining muscle at the same time, the scale can stall for weeks while you're still visibly changing.",
-      why: "Weight is one number confounded by water/food/muscle changes; a tape measure gives you a second, more diagnostic signal.",
-      choice: "Any tape measure works — the discipline of measuring the same spots weekly matters more than the tool." },
-    { n: "Electrolyte/ORS Sachets", pick: "Electral or Vitalyte", p: "₹100-150",
-      goal: "Prevent the cramps/fatigue/headaches that show up from combining a calorie deficit, heavy training, and Indian heat — these symptoms usually get misattributed to 'the diet not working' when it's actually just sodium depletion.",
-      why: "Sweat + reduced food intake both lower sodium/electrolyte levels below what plain water rehydration fixes.",
-      choice: "Electral/Vitalyte are standard, cheap, widely available — no reason to pay more for a 'sports' branded version of the same rehydration salts." },
-    { n: "Psyllium Husk (Isabgol)", pick: "Any brand, e.g. Dabur Isabgol", p: "₹150-200",
-      goal: "Prevent the constipation that a high-protein, reduced-calorie diet commonly causes — almost always overlooked until it's already a problem.",
-      why: "High protein + lower overall food volume both reduce fiber intake unless you deliberately add it back.",
-      choice: "Psyllium husk is a commodity fiber source — any brand delivers the same soluble fiber." },
-    { n: "Derma Roller 0.5mm (for hair)", pick: "Any 0.5mm dermaroller — ₹250-350", p: "₹250-350",
-      goal: "The one hair-category addition with real evidence behind it that's currently missing — microneedling has RCT support for improving minoxidil absorption and regrowth results when used ~1x/week.",
-      why: "Micro-injuries from the roller increase minoxidil penetration into the scalp and may independently stimulate growth factors.",
-      choice: "This is a stronger evidence-to-cost bet than the biotin already on your list — if you only add one thing from this section to the Hair category, make it this, not another supplement." },
-  ]},
+// Daily Calorie & Nutrition Schedule (Total ~1,900 kcal target)
+const mealSchedule = [
+  { id: "meal_bf", time: "8:10 AM", name: "Breakfast (Meal 1)", calories: 500, desc: "Eggs + Chicken/Paneer + Fresh Salad & Veggies" },
+  { id: "meal_sh", time: "12:30 PM", name: "Midday Protein Fuel", calories: 200, desc: "Whey Protein Shake + Creatine + Electrolytes" },
+  { id: "meal_dn", time: "4:00 PM", name: "Afternoon Meal (Meal 2)", calories: 600, desc: "Chicken / Fish / Paneer + Mixed Green Salad + Dal" },
+  { id: "meal_ev", time: "8:00 PM", name: "Evening Snack (Meal 3)", calories: 400, desc: "Greek Yogurt / Cottage Cheese bowl" },
+  { id: "meal_ex", time: "Flexible", name: "Buffer / Fruit / Coffee", calories: 200, desc: "Black coffee, fruit snack, or study energy buffer" },
 ];
 
-const c = {
-  bg:"#0a0a0b", s1:"#111113", s2:"#18181b", br:"rgba(255,255,255,0.08)",
-  tx:"#f4f1ec", dm:"#9b9792", ac:"#d4f244", on:"rgba(212,242,68,0.06)",
-  or:"#f0b84a", ok: "#65cfa0", okBg: "rgba(101,207,160,0.12)",
-  badBg: "rgba(255,255,255,0.02)"
-};
+const DAILY_CALORIE_TARGET = 1900;
 
-function Chk(){return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke={c.bg} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-function Chev({open}){return <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{transform:open?"rotate(180deg)":"none",transition:"0.2s"}}><path d="M4 6L8 10L12 6" stroke={c.dm} strokeWidth="2" strokeLinecap="round"/></svg>}
+function App() {
+  const [tab, setTab] = useState("timetable");
+  const [st, setSt] = useState(null);
+  const [plan, setPlan] = useState(null);
 
-const SUPPLIES = window.__SUPPLIES || {};
+  useEffect(() => window.__store.subscribe(setSt), []);
 
-function App(){
-  const[tab,setTab]=useState("today");
-  const[st,setSt]=useState(null);
-  const[openEx,setOpenEx]=useState(null);
-  const[openShop,setOpenShop]=useState(null);
-  const[trackModal,setTrackModal]=useState(null);
+  // Fetch real-time exam plan generated twice-daily by build-plan.js
+  useEffect(() => {
+    fetch("plan.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setPlan)
+      .catch(() => {});
+  }, []);
 
-  const[plan,setPlan]=useState(null);
-  useEffect(()=>window.__store.subscribe(setSt),[]);
-  useEffect(()=>{fetch("plan.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(setPlan).catch(()=>{});},[]);
+  if (!st) {
+    return (
+      <div style={{ background: c.bg, color: c.dm, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Syne, sans-serif" }}>
+        Loading Timetable…
+      </div>
+    );
+  }
 
-  const jsDay=new Date().getDay();
-  const di=jsDay===0?6:jsDay-1;
-  const today=weekPlan[di];
-  const todayEx=dayExercises[di]||[];
-  const isRest=di===6;
+  const checks = st.checks || {};
+  const mealsChecked = st.meals || {};
+  const synced = window.__store.mode === "firebase";
 
-  if(!st)return<div style={{background:c.bg,color:c.dm,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui"}}>Loading…</div>;
+  const toggleDaily = (id) => window.__store.toggleDaily(id);
+  const toggleMeal = (id) => window.__store.toggleMeal(id);
 
-  const checks=st.checks||{};
-  const wChecks=st.weekly||{};
-  const tog=(id, val=true)=>{
-    if(val === false) window.__store.toggleDaily(id, false);
-    else window.__store.toggleDaily(id, val);
-  };
-  const togW=(id)=>window.__store.toggleWeekly(id);
-  const synced=window.__store.mode==="firebase";
-
-  const allC={...checks,...wChecks};
+  // Timetable progress
   const activeChecklist = getAdjustedChecklist(plan);
-  const allI = activeChecklist.flatMap(g=>g.items);
-  const done=allI.filter(i=>allC[i.id]).length;
-  const pct=Math.round((done/allI.length)*100);
-  const daysLeft=Math.max(0,Math.ceil((new Date("2026-09-28")-new Date())/86400000));
+  const allItems = activeChecklist.flatMap((g) => g.items);
+  const doneCount = allItems.filter((i) => checks[i.id]).length;
+  const progressPct = Math.round((doneCount / allItems.length) * 100);
 
-  return(
-    <div style={{background:c.bg,color:c.tx,minHeight:"100vh",fontFamily:"-apple-system,system-ui,sans-serif",maxWidth:500,margin:"0 auto",paddingBottom:60}}>
-      {/* Header */}
-      <div style={{textAlign:"center",padding:"20px 16px 4px"}}>
-        <div style={{fontSize:22,fontWeight:800,letterSpacing:-0.5}}>THE PROTOCOL</div>
-        <div style={{fontSize:10,marginTop:4,color:synced?c.ok:c.or,letterSpacing:0.5}}>
-          {synced?"● Synced across devices":"● Local only — add Firebase config to sync"}
-        </div>
-        <div style={{display:"flex",justifyContent:"center",gap:28,padding:"12px 0"}}>
-          <div style={{textAlign:"center"}}><div style={{fontSize:36,fontWeight:800,color:c.ac,lineHeight:1}}>{daysLeft}</div><div style={{fontSize:9,color:c.dm,textTransform:"uppercase",letterSpacing:2,marginTop:2}}>Days Left</div></div>
-          <div style={{textAlign:"center"}}><div style={{fontSize:36,fontWeight:800,lineHeight:1}}>86</div><div style={{fontSize:9,color:c.dm,textTransform:"uppercase",letterSpacing:2,marginTop:2}}>Target KG</div></div>
-        </div>
-      </div>
+  // Calorie calculations
+  const consumedCals = mealSchedule.reduce((acc, m) => (mealsChecked[m.id] ? acc + m.calories : acc), 0);
+  const caloriePct = Math.min(100, Math.round((consumedCals / DAILY_CALORIE_TARGET) * 100));
 
-      {/* Tabs */}
-      <div style={{display:"flex",gap:4,padding:"6px 12px",position:"sticky",top:0,background:c.bg,zIndex:10,borderBottom:`1px solid ${c.br}`}}>
-        {[["today","✅ Today"],["workout","💪 Workout"],["shop","🛒 Shop"],["supplies","📦 Supplies"]].map(([k,l])=>(
-          <div key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"10px 4px",borderRadius:10,background:tab===k?c.ac:c.s1,color:tab===k?c.bg:c.dm,fontWeight:tab===k?700:500,fontSize:12,border:`1px solid ${tab===k?c.ac:c.br}`,cursor:"pointer",textAlign:"center"}}>{l}</div>
-        ))}
-      </div>
+  // Exam helpers
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const examsList = plan ? plan.exams || [] : [];
+  const activeStudyBlock = examsList.find((e) => e.blockDate === todayISO);
 
-      {/* TODAY TAB */}
-      {tab==="today"&&<div>
-        <div style={{background:c.okBg,border:"1px solid rgba(101,207,160,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
-          <div style={{fontSize:18,fontWeight:800,color:c.ok}}>{today.day} — {today.focus}</div>
-          <div style={{fontSize:12,color:c.dm,marginTop:2}}>{today.tag}</div>
-        </div>
-
-        {/* EXAM / STUDY-BLOCK PLAN */}
-        {plan&&(()=>{
-          const du=(d)=>Math.ceil((new Date(d+"T00:00:00")-new Date(new Date().toDateString()))/86400000);
-          const now=new Date();
-          const todayISO=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
-          const ex=(plan.exams||[]).map(e=>({...e,d:du(e.date)})).filter(e=>e.d>=0).sort((a,b)=>a.d-b.d);
-          const block=ex.find(e=>e.blockDate===todayISO);
-          if(!ex.length)return null;
-          const n=ex[0];const urgent=n.d<=2;
-          return(<div style={{margin:"12px 12px 0"}}>
-            {block&&<div style={{background:"rgba(64,200,128,0.1)",border:"1px solid rgba(64,200,128,0.35)",borderRadius:12,padding:"11px 14px",marginBottom:8}}>
-              <div style={{fontSize:11,fontWeight:700,color:c.ok,letterSpacing:0.5}}>📚 4-HOUR STUDY BLOCK TODAY</div>
-              <div style={{fontSize:14,fontWeight:700,marginTop:3}}>{block.name}</div>
-              <div style={{fontSize:12,color:c.tx,marginTop:1}}>{block.block}</div>
-            </div>}
-            <div style={{background:urgent?"rgba(240,80,80,0.1)":c.okBg,border:`1px solid ${urgent?"rgba(240,80,80,0.35)":"rgba(101,207,160,0.25)"}`,borderRadius:12,padding:"12px 14px"}}>
-              <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:urgent?"#f05050":c.ok}}>{n.d===0?"⚠ Exam today":n.d===1?"⚠ Exam tomorrow":`Next exam · ${n.d} days`}</div>
-              <div style={{fontSize:16,fontWeight:800,marginTop:3}}>{n.name}</div>
-              <div style={{fontSize:12,color:c.dm,marginTop:1}}>{n.dateLabel} · {n.time}</div>
-              <div style={{fontSize:12,color:urgent?c.or:c.ok,marginTop:6,fontWeight:600}}>Reserve 4h: {n.block}</div>
+  return (
+    <div style={{ background: c.bg, color: c.tx, minHeight: "100vh", maxWidth: 540, margin: "0 auto", paddingBottom: 80, position: "relative" }}>
+      {/* HEADER */}
+      <div style={{ padding: "24px 20px 14px", borderBottom: `1px solid ${c.br}`, background: "rgba(6,6,10,0.8)", backdropFilter: "blur(14px)", position: "sticky", top: 0, zIndex: 30 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 10, fontFamily: "DM Mono, monospace", color: c.ac, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 500 }}>
+              XLRI Term IV · Partner View
             </div>
-            {ex.length>1&&<div style={{padding:"8px 4px 0"}}>
-              {ex.slice(1).map((e,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:c.dm,padding:"3px 2px"}}><span>{e.name}</span><span>{e.d}d · {e.dateLabel}</span></div>))}
-            </div>}
-            {plan.note&&<div style={{fontSize:11,color:c.or,marginTop:8,padding:"0 2px"}}>⚑ {plan.note}</div>}
-            {plan.updated&&<div style={{fontSize:9,color:c.dm,textAlign:"right",marginTop:6,letterSpacing:0.5}}>synced {plan.updated}</div>}
-          </div>);
-        })()}
+            <div style={{ fontSize: 22, fontFamily: "Syne, sans-serif", fontWeight: 800, letterSpacing: -0.5, marginTop: 2 }}>
+              THE PROTOCOL
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.s1, border: `1px solid ${c.br}`, padding: "5px 10px", borderRadius: 20 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: synced ? c.gn : c.or }} className={synced ? "animate-pulse" : ""} />
+            <span style={{ fontSize: 10, fontFamily: "DM Mono, monospace", color: c.dm }}>
+              {synced ? "Live Sync" : "Local Standalone"}
+            </span>
+          </div>
+        </div>
 
-        <div style={{height:5,background:c.s2,borderRadius:3,margin:"12px 16px 0",overflow:"hidden"}}><div style={{height:"100%",background:c.ok,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
-        <div style={{textAlign:"right",padding:"4px 16px 8px",fontSize:11,color:c.dm}}>{done}/{allI.length} — {pct}%</div>
+        {/* QUICK STAT BAR */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
+          <div style={{ background: c.s1, border: `1px solid ${c.br}`, borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ fontSize: 10, color: c.dm, fontFamily: "DM Mono, monospace", textTransform: "uppercase" }}>Timetable Progress</div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 4 }}>
+              <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "Syne, sans-serif" }}>{doneCount}/{allItems.length}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: c.ac, fontFamily: "DM Mono, monospace" }}>{progressPct}%</span>
+            </div>
+            <div style={{ height: 4, background: c.s3, borderRadius: 2, marginTop: 6, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progressPct}%`, background: c.ac, borderRadius: 2, transition: "width 0.3s ease" }} />
+            </div>
+          </div>
 
-        {activeChecklist.map(g=>(
-          <div key={g.group} style={{padding:"0 12px",marginBottom:10}}>
-            <div style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{padding:"8px 14px",background:c.s2,fontSize:11,fontWeight:700,letterSpacing:1.5,color:c.dm,textTransform:"uppercase"}}>{g.group}</div>
-              {g.items.map(item=>{
-                const isW=item.id.startsWith("w");const on=isW?wChecks[item.id]:checks[item.id];
-                return(
-                  <div 
-                    key={item.id} 
-                    onClick={() => setTrackModal({item, isW, on, fn: isW ? togW : tog})}
+          <div style={{ background: c.s1, border: `1px solid ${c.br}`, borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ fontSize: 10, color: c.dm, fontFamily: "DM Mono, monospace", textTransform: "uppercase" }}>Daily Calorie Target</div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 4 }}>
+              <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "Syne, sans-serif" }}>{consumedCals} <span style={{ fontSize: 12, color: c.dm, fontWeight: 400 }}>/ {DAILY_CALORIE_TARGET}</span></span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: c.gn, fontFamily: "DM Mono, monospace" }}>kcal</span>
+            </div>
+            <div style={{ height: 4, background: c.s3, borderRadius: 2, marginTop: 6, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${caloriePct}%`, background: `linear-gradient(90deg, ${c.ac}, ${c.gn})`, borderRadius: 2, transition: "width 0.3s ease" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* NAV TABS */}
+        <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
+          {[
+            ["timetable", "📅 Timetable"],
+            ["calories", "🥗 Daily Calories"],
+            ["exams", "📚 Exam Plan"],
+          ].map(([k, label]) => {
+            const active = tab === k;
+            return (
+              <button
+                key={k}
+                onClick={() => setTab(k)}
+                style={{
+                  flex: 1,
+                  padding: "9px 6px",
+                  borderRadius: 10,
+                  border: `1px solid ${active ? c.ac : c.br}`,
+                  background: active ? c.acd : c.s1,
+                  color: active ? c.ac : c.dm,
+                  fontFamily: "Syne, sans-serif",
+                  fontSize: 12,
+                  fontWeight: active ? 700 : 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* CONTENT AREA */}
+      <div style={{ padding: "16px 18px" }}>
+        {/* TAB 1: TIMETABLE & ROUTINE */}
+        {tab === "timetable" && (
+          <div className="animate-fade">
+            {/* EXAM / STUDY BLOCK ALERT IF ACTIVE TODAY */}
+            {activeStudyBlock && (
+              <div style={{ background: c.ord, border: `1px solid rgba(240,184,74,0.4)`, borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: c.or, fontSize: 11, fontFamily: "DM Mono, monospace", fontWeight: 700, letterSpacing: 0.5 }}>
+                  <span>⚠️ UPCOMING EXAM STUDY BLOCK</span>
+                </div>
+                <div style={{ fontSize: 16, fontFamily: "Syne, sans-serif", fontWeight: 800, marginTop: 4 }}>
+                  {activeStudyBlock.name}
+                </div>
+                <div style={{ fontSize: 12, color: c.tx, marginTop: 2 }}>
+                  <strong>Reserved Study Block:</strong> {activeStudyBlock.block}
+                </div>
+              </div>
+            )}
+
+            {activeChecklist.map((group, gi) => (
+              <div key={gi} style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: 12, fontFamily: "Syne, sans-serif", fontWeight: 700, color: c.dm, letterSpacing: 0.5, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>{group.group}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {group.items.map((item) => {
+                    const isDone = !!checks[item.id];
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleDaily(item.id)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "13px 15px",
+                          borderRadius: 12,
+                          background: isDone ? "rgba(101,207,160,0.12)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isDone ? "rgba(101,207,160,0.3)" : c.br}`,
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 6,
+                              border: `1.5px solid ${isDone ? c.gn : c.dm}`,
+                              background: isDone ? c.gn : "transparent",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              color: c.bg,
+                              fontSize: 13,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {isDone && "✓"}
+                          </div>
+                          <div style={{ minWidth: 0, textDecoration: isDone ? "line-through" : "none", opacity: isDone ? 0.8 : 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: isDone ? 600 : 500, color: isDone ? c.gn : c.tx }}>
+                              {item.label}
+                            </div>
+                            {checks[item.id] && checks[item.id].amount ? (
+                                <div style={{ fontSize: 11, color: isDone ? c.gn : c.ac, marginTop: 2 }}>
+                                  {checks[item.id].amount} {checks[item.id].notes && `— ${checks[item.id].notes}`}
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: 11, color: isDone ? c.gn : c.dm, marginTop: 2 }}>
+                                  {item.desc}
+                                </div>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: isDone ? c.gn : c.ac, background: isDone ? c.gnd : c.acd, padding: "3px 8px", borderRadius: 6, flexShrink: 0, marginLeft: 10 }}>
+                          {item.time}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* TAB 2: DAILY CALORIES & MEALS */}
+        {tab === "calories" && (
+          <div className="animate-fade">
+            <div style={{ background: c.s1, border: `1px solid ${c.br}`, borderRadius: 14, padding: "16px 18px", marginBottom: 18 }}>
+              <div style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: c.ac, textTransform: "uppercase", letterSpacing: 1 }}>
+                Nutrition & Fuel Breakdown
+              </div>
+              <div style={{ fontSize: 18, fontFamily: "Syne, sans-serif", fontWeight: 800, marginTop: 4 }}>
+                Daily Calorie Target: {DAILY_CALORIE_TARGET} kcal
+              </div>
+              <div style={{ fontSize: 12, color: c.dm, marginTop: 4, lineHeight: 1.5 }}>
+                Structured meal timing without body measurement tracking. Check off meals as they are completed to monitor daily intake.
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${c.br}` }}>
+                <div>
+                  <div style={{ fontSize: 11, color: c.dm }}>Total Logged</div>
+                  <div style={{ fontSize: 22, fontFamily: "Syne, sans-serif", fontWeight: 800, color: c.gn }}>
+                    {consumedCals} <span style={{ fontSize: 13, color: c.dm }}>kcal</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 11, color: c.dm }}>Remaining</div>
+                  <div style={{ fontSize: 22, fontFamily: "Syne, sans-serif", fontWeight: 800, color: consumedCals >= DAILY_CALORIE_TARGET ? c.ac : c.tx }}>
+                    {Math.max(0, DAILY_CALORIE_TARGET - consumedCals)} <span style={{ fontSize: 13, color: c.dm }}>kcal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {mealSchedule.map((meal) => {
+                const isDone = !!mealsChecked[meal.id];
+                return (
+                  <div
+                    key={meal.id}
+                    onClick={() => toggleMeal(meal.id)}
                     style={{
-                      display:"flex", alignItems:"center", padding:"12px 14px", borderBottom:`1px solid ${c.br}`,
-                      cursor:"pointer", background:on ? c.okBg : c.badBg, transition:"all 0.2s"
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: isDone ? "rgba(101,207,160,0.06)" : c.s1,
+                      border: `1px solid ${isDone ? "rgba(101,207,160,0.3)" : c.br}`,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <div style={{width:20,height:20,borderRadius:6,border:`1px solid ${on ? c.ok : c.br}`,background:on ? c.ok : "transparent",marginRight:12,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      {on && <span style={{color:c.bg,fontSize:14}}>✓</span>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          border: `1.5px solid ${isDone ? c.gn : c.dm}`,
+                          background: isDone ? c.gn : "transparent",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          color: c.bg,
+                          fontSize: 13,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {isDone && "✓"}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: isDone ? c.gn : c.tx }}>
+                          {meal.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: c.dm, marginTop: 2 }}>
+                          {meal.desc}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,color:on ? c.ok : c.tx,textDecoration:on?"line-through":"none",fontWeight:on?600:400}}>{item.label}</div>
-                      {on && on.amount && <div style={{fontSize:10,color:c.ok,marginTop:2}}>{on.amount} {on.notes&&`— ${on.notes}`}</div>}
+
+                    <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                      <div style={{ fontSize: 14, fontFamily: "Syne, sans-serif", fontWeight: 700, color: isDone ? c.gn : c.ac }}>
+                        {meal.calories} kcal
+                      </div>
+                      <div style={{ fontSize: 10, fontFamily: "DM Mono, monospace", color: c.dm, marginTop: 2 }}>
+                        {meal.time}
+                      </div>
                     </div>
-                    {item.t && <span style={item.shifted ? {fontSize:11, color:c.or, fontWeight:"bold", marginLeft:8, flexShrink:0} : {fontSize:11, color:c.dm, marginLeft:8, flexShrink:0}}>{item.t}</span>}
                   </div>
                 );
               })}
             </div>
           </div>
-        ))}
-      </div>}
+        )}
 
-      {/* WORKOUT TAB */}
-      {tab==="workout"&&<div>
-        <div style={{background:c.acd,border:"1px solid rgba(184,240,53,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
-          <div style={{fontSize:18,fontWeight:800,color:c.ac}}>{today.focus}</div>
-          <div style={{fontSize:12,color:c.dm,marginTop:2}}>{isRest?"Rest day — still do knee + posture below":"Do these in order. Tap for form guide."}</div>
-        </div>
-
-        {!isRest&&<div style={{padding:"0 12px"}}>
-          <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:c.dm,marginBottom:8}}>Today's Exercises</div>
-          {todayEx.map((ex,i)=>{const k=`m${i}`;const o=openEx===k;return(
-            <div key={k} style={{background:c.s1,border:`1px solid ${o?c.ac:c.br}`,borderRadius:12,marginBottom:8,overflow:"hidden"}}>
-              <div onClick={()=>setOpenEx(o?null:k)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",cursor:"pointer"}}>
-                <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,marginBottom:1}}><span style={{color:c.ac,marginRight:6}}>{i+1}.</span>{ex.name}</div><div style={{fontSize:11,color:c.ac}}>{ex.target}</div></div>
-                <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:12,fontWeight:700,color:c.ac}}>{ex.sets}</span><Chev open={o}/></div>
+        {/* TAB 3: EXAM SCHEDULE & STUDY BLOCKS */}
+        {tab === "exams" && (
+          <div className="animate-fade">
+            <div style={{ background: c.cyd, border: `1px solid rgba(112,174,232,0.3)`, borderRadius: 14, padding: "16px 18px", marginBottom: 18 }}>
+              <div style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: c.cy, textTransform: "uppercase", letterSpacing: 1 }}>
+                XLRI Term IV · Enrolled Courses
               </div>
-              {ex.sub!=="—"&&<div style={{fontSize:11,color:c.or,padding:"0 14px 6px"}}>Gym equiv: {ex.sub}</div>}
-              {o&&<div style={{padding:"10px 14px",background:c.s2,borderTop:`1px solid ${c.br}`,fontSize:13,lineHeight:1.6}}>{ex.how}</div>}
-            </div>
-          );})}
-        </div>}
-
-        {alwaysDo.map(sec=>(
-          <div key={sec.group} style={{padding:"0 12px",marginTop:16}}>
-            <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:c.dm,marginBottom:8}}>{sec.group}</div>
-            {sec.items.map((ex,i)=>{const k=`${sec.group}-${i}`;const o=openEx===k;return(
-              <div key={k} style={{background:c.s1,border:`1px solid ${o?c.ac:c.br}`,borderRadius:12,marginBottom:8,overflow:"hidden"}}>
-                <div onClick={()=>setOpenEx(o?null:k)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",cursor:"pointer"}}>
-                  <div style={{flex:1,fontSize:14,fontWeight:600}}>{ex.name}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:12,fontWeight:700,color:c.ac}}>{ex.sets}</span><Chev open={o}/></div>
+              <div style={{ fontSize: 18, fontFamily: "Syne, sans-serif", fontWeight: 800, marginTop: 4 }}>
+                Automated Exam & Study Block Feed
+              </div>
+              <div style={{ fontSize: 12, color: c.dm, marginTop: 4 }}>
+                Automatically refreshed twice daily from Command Centre (`plan.json`). Includes mandatory 4-hour study blocks reserved the evening before each test.
+              </div>
+              {plan && plan.updated && (
+                <div style={{ fontSize: 10, color: c.cy, fontFamily: "DM Mono, monospace", marginTop: 8 }}>
+                  Last Synced: {plan.updated}
                 </div>
-                {o&&<div style={{padding:"10px 14px",background:c.s2,borderTop:`1px solid ${c.br}`,fontSize:13,lineHeight:1.6}}>{ex.how}</div>}
-              </div>
-            );})}
-          </div>
-        ))}
+              )}
+            </div>
 
-        {isRest&&<div style={{textAlign:"center",padding:"40px 16px",color:c.dm}}>
-          <div style={{fontSize:40,marginBottom:12}}>🛌</div>
-          <div style={{fontSize:14}}>No lifting today. Stretch, walk, sleep well.</div>
-          <div style={{fontSize:12,marginTop:8}}>Still do knee correction + posture above.</div>
-        </div>}
-      </div>}
-
-      {/* SHOP TAB */}
-      {tab==="shop"&&<div>
-        <div style={{background:"rgba(64,200,128,0.08)",border:"1px solid rgba(64,200,128,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
-          <div style={{fontSize:18,fontWeight:800,color:c.gn}}>₹7,000–10,000 total</div>
-          <div style={{fontSize:12,color:c.dm,marginTop:2}}>One-time setup — recurring: whey + creatine ~₹2,200/mo</div>
-        </div>
-        {shoppingList.map(cat=>(
-          <div key={cat.cat} style={{padding:"0 12px",marginBottom:12}}>
-            <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:c.dm,marginBottom:8}}>{cat.cat}</div>
-            {cat.items.map((item,i)=>{const k=`${cat.cat}-${i}`;const o=openShop===k;return(
-              <div key={k} style={{background:c.s1,border:`1px solid ${o?c.ac:c.br}`,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
-                <div onClick={()=>setOpenShop(o?null:k)} style={{padding:"10px 14px",cursor:"pointer"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{fontSize:13,fontWeight:700}}>{item.n}</div>
-                    <Chev open={o}/>
-                  </div>
-                  <div style={{fontSize:12,color:c.ac,marginTop:3}}>{item.pick}</div>
-                  <div style={{fontSize:12,fontWeight:700,color:c.gn,marginTop:2}}>{item.p}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {examsList.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 20px", background: c.s1, borderRadius: 12, color: c.dm }}>
+                  No upcoming exams listed in `plan.json` right now.
                 </div>
-                {o&&<div style={{padding:"2px 14px 14px",background:c.s2,borderTop:`1px solid ${c.br}`}}>
-                  <div style={{marginTop:10}}>
-                    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:c.gn}}>Goal — what we want out of it</div>
-                    <div style={{fontSize:12,color:c.tx,marginTop:3,lineHeight:1.5}}>{item.goal}</div>
-                  </div>
-                  <div style={{marginTop:10}}>
-                    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:c.or}}>Why this at all</div>
-                    <div style={{fontSize:12,color:c.tx,marginTop:3,lineHeight:1.5}}>{item.why}</div>
-                  </div>
-                  <div style={{marginTop:10}}>
-                    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:c.ac}}>Why this pick, not another</div>
-                    <div style={{fontSize:12,color:c.tx,marginTop:3,lineHeight:1.5}}>{item.choice}</div>
-                  </div>
-                </div>}
-              </div>
-            );})}
-          </div>
-        ))}
-      </div>}
+              ) : (
+                examsList.map((ex, idx) => (
+                  <div key={idx} style={{ background: c.s1, border: `1px solid ${c.br}`, borderRadius: 14, padding: "16px 18px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                      <div>
+                        <span style={{ fontSize: 10, fontFamily: "DM Mono, monospace", background: c.s3, color: c.ac, padding: "3px 8px", borderRadius: 6, fontWeight: 500 }}>
+                          {ex.type || "Exam"}
+                        </span>
+                        <div style={{ fontSize: 16, fontFamily: "Syne, sans-serif", fontWeight: 800, marginTop: 6, color: c.tx }}>
+                          {ex.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: c.dm, marginTop: 3 }}>
+                          📅 <strong>{ex.dateLabel}</strong> · {ex.time}
+                        </div>
+                      </div>
+                    </div>
 
-      {/* SUPPLIES TAB */}
-      {tab==="supplies"&&<div style={{padding:"0 12px"}}>
-        <div style={{fontSize:11,color:c.dm,padding:"12px 2px",lineHeight:1.5}}>
-          Estimates are built from your actual checklist ticks, not the label size alone. Tap "Mark as opened" the day you start a fresh bottle so the countdown has a clean starting point — new items need a few days of ticks before an estimate shows up.
-        </div>
-        {Object.keys(SUPPLIES).map(key=>{
-          const sup = SUPPLIES[key];
-          const u = (st && st.usage && st.usage[key]) || { totalUsed: 0 };
-          const openedStr = st && st.opened && st.opened[key];
-          let daysLeft=null, runOutDate=null, daysTracked=0;
-          if (openedStr) {
-            daysTracked = Math.max(1, Math.round((Date.now()-new Date(openedStr).getTime())/86400000));
-            const perDay = u.totalUsed/daysTracked;
-            const remaining = sup.size - u.totalUsed;
-            if (perDay>0 && daysTracked>=3) {
-              daysLeft = Math.max(0, Math.round(remaining/perDay));
-              const d=new Date(); d.setDate(d.getDate()+daysLeft);
-              runOutDate = d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-            }
-          }
-          return (
-            <div key={key} style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:10,padding:"12px 14px",marginBottom:8}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:13,fontWeight:700}}>{sup.label}</div>
-                <div style={{fontSize:11,color:c.dm}}>{sup.size}{sup.unit} pack</div>
-              </div>
-              {!openedStr && <div style={{marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:11,color:c.dm}}>Not tracking yet</div>
-                <div onClick={()=>window.__store.markOpened(key)} style={{fontSize:11,fontWeight:700,color:c.bg,background:c.ac,padding:"6px 10px",borderRadius:8,cursor:"pointer"}}>Mark as opened</div>
-              </div>}
-              {openedStr && daysLeft===null && <div style={{marginTop:8,fontSize:12,color:c.dm}}>Tracking since {openedStr} — building up enough data ({daysTracked} day{daysTracked===1?"":"s"} so far).</div>}
-              {openedStr && daysLeft!==null && <div style={{marginTop:8}}>
-                <div style={{fontSize:13,fontWeight:700,color:daysLeft<=7?c.rd:daysLeft<=14?c.or:c.gn}}>~{daysLeft} day{daysLeft===1?"":"s"} left</div>
-                <div style={{fontSize:11,color:c.dm,marginTop:2}}>Runs out around {runOutDate} at your current pace · opened {openedStr}</div>
-                <div onClick={()=>window.__store.markOpened(key)} style={{fontSize:10,color:c.ac,marginTop:6,cursor:"pointer",textDecoration:"underline"}}>Just opened a new one? Reset tracking</div>
-              </div>}
-            </div>
-          );
-        })}
-      </div>}
-
-      {/* TRACKING MODAL */}
-      {trackModal&&(()=>{
-        const {item, fn, on} = trackModal;
-        const initialAmount = on && on.amount ? on.amount : "";
-        const initialNotes = on && on.notes ? on.notes : "";
-        return(
-          <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.8)",zIndex:999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-            <div style={{background:c.s2,width:"100%",maxWidth:500,borderTopLeftRadius:20,borderTopRightRadius:20,padding:"20px",borderTop:`1px solid ${c.br}`}}>
-              <div style={{fontSize:12,color:c.ac,letterSpacing:1,textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Log Progress</div>
-              <div style={{fontSize:18,fontWeight:800,marginBottom:16}}>{item.label}</div>
-              
-              <div style={{marginBottom:12}}>
-                <div style={{fontSize:11,color:c.dm,marginBottom:4,textTransform:"uppercase"}}>Amount / Duration (Optional)</div>
-                <input id="track-amount" type="text" defaultValue={initialAmount} placeholder="e.g. 45 mins, 10 pages" style={{width:"100%",background:c.bg,border:`1px solid ${c.br}`,color:c.tx,padding:"12px",borderRadius:8,fontSize:14}} />
-              </div>
-              <div style={{marginBottom:20}}>
-                <div style={{fontSize:11,color:c.dm,marginBottom:4,textTransform:"uppercase"}}>Notes (Optional)</div>
-                <input id="track-notes" type="text" defaultValue={initialNotes} placeholder="e.g. Felt sluggish, pushed through" style={{width:"100%",background:c.bg,border:`1px solid ${c.br}`,color:c.tx,padding:"12px",borderRadius:8,fontSize:14}} />
-              </div>
-              
-              <div style={{display:"flex",gap:12}}>
-                <button onClick={()=>setTrackModal(null)} style={{flex:1,padding:"14px",background:c.s1,border:`1px solid ${c.br}`,color:c.tx,borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer"}}>Cancel</button>
-                <button onClick={()=>{
-                  const amt = document.getElementById("track-amount").value;
-                  const notes = document.getElementById("track-notes").value;
-                  if (!amt && !notes && !on) {
-                    fn(item.id); // legacy toggle
-                  } else if (on && !amt && !notes) {
-                    fn(item.id, false); // uncheck
-                  } else {
-                    fn(item.id, { done: true, amount: amt, notes: notes });
-                  }
-                  setTrackModal(null);
-                }} style={{flex:2,padding:"14px",background:c.ac,border:"none",color:c.bg,borderRadius:8,fontSize:14,fontWeight:800,cursor:"pointer"}}>{on ? "Update Log" : "Mark Done"}</button>
-                {on && <button onClick={()=>{ fn(item.id, false); setTrackModal(null); }} style={{padding:"14px",background:c.rd,border:"none",color:c.bg,borderRadius:8,fontSize:14,fontWeight:800,cursor:"pointer"}}>Uncheck</button>}
-              </div>
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${c.br}`, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14 }}>📚</span>
+                      <div>
+                        <div style={{ fontSize: 11, color: c.or, fontWeight: 700, fontFamily: "DM Mono, monospace" }}>
+                          MANDATORY STUDY BLOCK
+                        </div>
+                        <div style={{ fontSize: 12, color: c.tx, marginTop: 1 }}>
+                          {ex.block}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-        );
-      })()}
+        )}
+      </div>
 
-      <div style={{textAlign:"center",padding:"24px 0",fontSize:10,color:c.dm,letterSpacing:2,textTransform:"uppercase"}}>
-        100.4 → 86 — <span style={{color:c.ac}}>The Protocol</span>
-        <div style={{marginTop:8,letterSpacing:1}}><a href="schedule.html" style={{color:c.gn,textDecoration:"none"}}>Partner Timetable View →</a></div>
+      {/* FOOTER */}
+      <div style={{ textAlign: "center", padding: "20px 16px", fontSize: 11, color: c.dm, borderTop: `1px solid ${c.br}`, marginTop: 24 }}>
+        The Protocol · Shared Timetable & Calorie Tracker · Realtime Sync
       </div>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-</script>
-
-<!-- Compile the JSX above with the CLASSIC runtime (uses React.createElement, no imports) -->
-<script>
-(function () {
-  try {
-    var src = document.getElementById("app-src").textContent;
-    var out = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
-    (0, eval)(out);
-  } catch (e) {
-    console.error("Protocol: app failed to compile/run", e);
-    document.getElementById("root").innerHTML =
-      '<div style="color:#f05050;font-family:system-ui;padding:24px;font-size:14px;line-height:1.5">App failed to load:<br>' +
-      (e && e.message ? e.message : e) + '</div>';
-  }
-})();
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
