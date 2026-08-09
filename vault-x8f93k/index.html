@@ -691,7 +691,7 @@ function App(){
             <div style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:12,overflow:"hidden"}}>
               <div style={{padding:"8px 14px",background:c.s2,fontSize:11,fontWeight:700,letterSpacing:1.5,color:c.dm,textTransform:"uppercase"}}>{g.group}</div>
               {g.items.map(item=>{
-                const isW=item.id.startsWith("w");const on=isW?wChecks[item.id]:checks[item.id];
+                const isW=/^w\d+$/.test(item.id);const on=isW?wChecks[item.id]:checks[item.id];
                 return(
                   <div 
                     key={item.id} 
