@@ -51,12 +51,15 @@
 <script>
 (function () {
   var FIREBASE_CONFIG = {
-    apiKey:        "PASTE_YOUR_API_KEY",
-    authDomain:    "PASTE_YOUR_PROJECT.firebaseapp.com",
-    projectId:     "PASTE_YOUR_PROJECT_ID"
+    apiKey: "AIzaSyDPUq6RuoNJk4C-ZyPwLYk6_UG2EG1m9Tk",
+    authDomain: "protocol-abhinav.firebaseapp.com",
+    projectId: "protocol-abhinav",
+    storageBucket: "protocol-abhinav.firebasestorage.app",
+    messagingSenderId: "108786974142",
+    appId: "1:108786974142:web:2d512fffcb470d15968def"
   };
 
-  var SYNC_CODE = "CHANGE-ME-to-a-long-private-code";
+  var SYNC_CODE = "93abf8c1-15e9-4672-8f65-4f40d51381b8";
 
   var configured =
     FIREBASE_CONFIG.apiKey &&
@@ -91,8 +94,13 @@
       if (ready) cb(state);
       return function () { subs = subs.filter(function (x) { return x !== cb; }); };
     },
-    toggleDaily: function (id) {
-      var c = Object.assign({}, state.checks); c[id] = !c[id];
+    toggleDaily: function (id, data) {
+      var c = Object.assign({}, state.checks);
+      if (data !== undefined) {
+        c[id] = data;
+      } else {
+        c[id] = !c[id];
+      }
       state = { date: state.date, checks: c, weekly: state.weekly, meals: state.meals };
       notify(); persist();
     },
@@ -425,9 +433,15 @@ function App() {
                             <div style={{ fontSize: 14, fontWeight: 600, color: isDone ? c.gn : c.tx, textDecoration: isDone ? "line-through" : "none" }}>
                               {item.label}
                             </div>
-                            <div style={{ fontSize: 11, color: c.dm, marginTop: 2 }}>
-                              {item.desc}
-                            </div>
+                            {checks[item.id] && checks[item.id].amount ? (
+                                <div style={{ fontSize: 11, color: c.ac, marginTop: 2 }}>
+                                  {checks[item.id].amount} {checks[item.id].notes && `— ${checks[item.id].notes}`}
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: 11, color: c.dm, marginTop: 2 }}>
+                                  {item.desc}
+                                </div>
+                            )}
                           </div>
                         </div>
                         <div style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: isDone ? c.gn : c.ac, background: isDone ? c.gnd : c.acd, padding: "3px 8px", borderRadius: 6, flexShrink: 0, marginLeft: 10 }}>

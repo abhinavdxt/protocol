@@ -35,16 +35,18 @@
 (function () {
   // ---- 1) FIREBASE CONFIG ------------------------------------------------
   var FIREBASE_CONFIG = {
-    apiKey:        "PASTE_YOUR_API_KEY",
-    authDomain:    "PASTE_YOUR_PROJECT.firebaseapp.com",
-    projectId:     "PASTE_YOUR_PROJECT_ID"
-    // storageBucket / messagingSenderId / appId are optional for Firestore
+    apiKey: "AIzaSyDPUq6RuoNJk4C-ZyPwLYk6_UG2EG1m9Tk",
+    authDomain: "protocol-abhinav.firebaseapp.com",
+    projectId: "protocol-abhinav",
+    storageBucket: "protocol-abhinav.firebasestorage.app",
+    messagingSenderId: "108786974142",
+    appId: "1:108786974142:web:2d512fffcb470d15968def"
   };
 
   // ---- 2) SYNC CODE ------------------------------------------------------
   // Make this long and private (like a password). Use the SAME value on
   // every device you want to sync. Anyone with this code can see your data.
-  var SYNC_CODE = "CHANGE-ME-to-a-long-private-code";
+  var SYNC_CODE = "93abf8c1-15e9-4672-8f65-4f40d51381b8";
   // ------------------------------------------------------------------------
 
 
@@ -135,8 +137,13 @@
       if (ready) cb(state);
       return function () { subs = subs.filter(function (x) { return x !== cb; }); };
     },
-    toggleDaily: function (id) {
-      var c = Object.assign({}, state.checks); c[id] = !c[id];
+    toggleDaily: function (id, data) {
+      var c = Object.assign({}, state.checks);
+      if (data !== undefined) {
+        c[id] = data; // e.g. { done: true, amount: '45m', notes: 'good' }
+      } else {
+        c[id] = !c[id]; // legacy toggle
+      }
       state = Object.assign({}, state, { checks: c });
       notify(); persist();
     },
@@ -492,6 +499,7 @@ function App(){
   const[st,setSt]=useState(null);
   const[openEx,setOpenEx]=useState(null);
   const[openShop,setOpenShop]=useState(null);
+  const[trackModal,setTrackModal]=useState(null);
 
   const[plan,setPlan]=useState(null);
   useEffect(()=>window.__store.subscribe(setSt),[]);
@@ -584,9 +592,12 @@ function App(){
               {g.items.map(item=>{
                 const isW=item.id.startsWith("w");const on=isW?wChecks[item.id]:checks[item.id];const fn=isW?togW:tog;
                 return(
-                  <div key={item.id} onClick={()=>fn(item.id)} style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:`1px solid ${c.br}`,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  <div key={item.id} onClick={()=>setTrackModal({item, isW, on, fn})} style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:`1px solid ${c.br}`,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                     <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?c.ac:c.br}`,background:on?c.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginRight:10}}>{on&&<Chk/>}</div>
-                    <span style={{flex:1,fontSize:13,color:on?c.dm:c.tx,textDecoration:on?"line-through":"none"}}>{item.label}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,color:on?c.dm:c.tx,textDecoration:on?"line-through":"none"}}>{item.label}</div>
+                      {on && on.amount && <div style={{fontSize:10,color:c.ac,marginTop:2}}>{on.amount} {on.notes&&`— ${on.notes}`}</div>}
+                    </div>
                     {item.t&&<span style={{fontSize:11,color:c.dm,marginLeft:8,flexShrink:0}}>{item.t}</span>}
                   </div>
                 );
@@ -718,6 +729,47 @@ function App(){
           );
         })}
       </div>}
+
+      {/* TRACKING MODAL */}
+      {trackModal&&(()=>{
+        const {item, fn, on} = trackModal;
+        const initialAmount = on && on.amount ? on.amount : "";
+        const initialNotes = on && on.notes ? on.notes : "";
+        return(
+          <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.8)",zIndex:999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+            <div style={{background:c.s2,width:"100%",maxWidth:500,borderTopLeftRadius:20,borderTopRightRadius:20,padding:"20px",borderTop:`1px solid ${c.br}`}}>
+              <div style={{fontSize:12,color:c.ac,letterSpacing:1,textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Log Progress</div>
+              <div style={{fontSize:18,fontWeight:800,marginBottom:16}}>{item.label}</div>
+              
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11,color:c.dm,marginBottom:4,textTransform:"uppercase"}}>Amount / Duration (Optional)</div>
+                <input id="track-amount" type="text" defaultValue={initialAmount} placeholder="e.g. 45 mins, 10 pages" style={{width:"100%",background:c.bg,border:`1px solid ${c.br}`,color:c.tx,padding:"12px",borderRadius:8,fontSize:14}} />
+              </div>
+              <div style={{marginBottom:20}}>
+                <div style={{fontSize:11,color:c.dm,marginBottom:4,textTransform:"uppercase"}}>Notes (Optional)</div>
+                <input id="track-notes" type="text" defaultValue={initialNotes} placeholder="e.g. Felt sluggish, pushed through" style={{width:"100%",background:c.bg,border:`1px solid ${c.br}`,color:c.tx,padding:"12px",borderRadius:8,fontSize:14}} />
+              </div>
+              
+              <div style={{display:"flex",gap:12}}>
+                <button onClick={()=>setTrackModal(null)} style={{flex:1,padding:"14px",background:c.s1,border:`1px solid ${c.br}`,color:c.tx,borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+                <button onClick={()=>{
+                  const amt = document.getElementById("track-amount").value;
+                  const notes = document.getElementById("track-notes").value;
+                  if (!amt && !notes && !on) {
+                    fn(item.id); // legacy toggle
+                  } else if (on && !amt && !notes) {
+                    fn(item.id, false); // uncheck
+                  } else {
+                    fn(item.id, { done: true, amount: amt, notes: notes });
+                  }
+                  setTrackModal(null);
+                }} style={{flex:2,padding:"14px",background:c.ac,border:"none",color:c.bg,borderRadius:8,fontSize:14,fontWeight:800,cursor:"pointer"}}>{on ? "Update Log" : "Mark Done"}</button>
+                {on && <button onClick={()=>{ fn(item.id, false); setTrackModal(null); }} style={{padding:"14px",background:c.rd,border:"none",color:c.bg,borderRadius:8,fontSize:14,fontWeight:800,cursor:"pointer"}}>Uncheck</button>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{textAlign:"center",padding:"24px 0",fontSize:10,color:c.dm,letterSpacing:2,textTransform:"uppercase"}}>
         100.4 → 86 — <span style={{color:c.ac}}>The Protocol</span>
