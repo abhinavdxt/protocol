@@ -47,6 +47,13 @@ async function main() {
     all.push({ id: m[1], date: m[2], type: m[3], code: m[4], text: m[5], slot: cleanSlot(m[6]) });
   }
 
+  const classRe = /{"date":"(\d{4}-\d{2}-\d{2})","code":"([^"]+)","section":"([^"]+)","slot":"([^"]+)"[^{}]*}/g;
+  const allClasses = [];
+  let cm;
+  while ((cm = classRe.exec(flat)) !== null) {
+    allClasses.push({ date: cm[1], code: cm[2], section: cm[3], slot: cleanSlot(cm[4]) });
+  }
+
   // Safety net: a healthy Command Centre response has dozens of assessment
   // records. Zero here means the fetch/decode failed (blocked, redirected,
   // format changed) rather than "no exams exist" — bail out instead of
@@ -76,6 +83,10 @@ async function main() {
       };
     });
 
+  const classes = allClasses
+    .filter(c => ENROLLED.includes(c.code) && (c.section === "E" || c.section === "BOTH") && c.date >= todayISO)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   const hh = today.getHours(), mm = today.getMinutes();
   const ampm = hh >= 12 ? "PM" : "AM";
   const h12 = ((hh + 11) % 12) + 1;
@@ -85,6 +96,7 @@ async function main() {
     updated,
     term: TERM,
     exams,
+    classes,
     note: exams.length ? "" : "No upcoming exams for your courses right now."
   };
 

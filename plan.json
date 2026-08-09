@@ -1,5 +1,5 @@
 {
-  "updated": "Fri 7 Aug, 9:46 PM",
+  "updated": "Sun 9 Aug, 11:09 AM",
   "term": "XLRI Term IV · Sec E · B25349",
   "exams": [
     {
@@ -12,7 +12,7 @@
       "blockDate": "2026-08-09"
     },
     {
-      "name": "PPBS Mid-Term",
+      "name": "PPBS Mid-Term (4:30 PM)",
       "date": "2026-08-11",
       "dateLabel": "Tue 11 Aug",
       "time": "4:30–6:00",
@@ -28,6 +28,134 @@
       "type": "Quiz",
       "block": "Wed 12 Aug · 2:30–6:30 PM",
       "blockDate": "2026-08-12"
+    }
+  ],
+  "classes": [
+    {
+      "date": "2026-08-09",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "8:30–10:00"
+    },
+    {
+      "date": "2026-08-09",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "10:20–11:50"
+    },
+    {
+      "date": "2026-08-11",
+      "code": "BAV",
+      "section": "E",
+      "slot": "8:30–10:00"
+    },
+    {
+      "date": "2026-08-11",
+      "code": "BAV",
+      "section": "E",
+      "slot": "10:20–11:50"
+    },
+    {
+      "date": "2026-08-11",
+      "code": "INM",
+      "section": "E",
+      "slot": "2:45–4:15"
+    },
+    {
+      "date": "2026-08-12",
+      "code": "BAV",
+      "section": "E",
+      "slot": "2:45–4:15"
+    },
+    {
+      "date": "2026-08-13",
+      "code": "BAV",
+      "section": "E",
+      "slot": "8:30–10:00"
+    },
+    {
+      "date": "2026-08-13",
+      "code": "INM",
+      "section": "E",
+      "slot": "10:20–11:50"
+    },
+    {
+      "date": "2026-08-17",
+      "code": "PJM",
+      "section": "BOTH",
+      "slot": "4:30–6:00"
+    },
+    {
+      "date": "2026-08-17",
+      "code": "PJM",
+      "section": "BOTH",
+      "slot": "6:15–7:45"
+    },
+    {
+      "date": "2026-08-18",
+      "code": "INM",
+      "section": "E",
+      "slot": "12:10–1:40"
+    },
+    {
+      "date": "2026-08-19",
+      "code": "PJM",
+      "section": "BOTH",
+      "slot": "10:20–11:50"
+    },
+    {
+      "date": "2026-08-19",
+      "code": "PJM",
+      "section": "BOTH",
+      "slot": "12:10–1:40"
+    },
+    {
+      "date": "2026-08-20",
+      "code": "INM",
+      "section": "E",
+      "slot": "12:10–1:40"
+    },
+    {
+      "date": "2026-08-27",
+      "code": "INM",
+      "section": "E",
+      "slot": "12:10–1:40"
+    },
+    {
+      "date": "2026-08-27",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "4:30–6:00"
+    },
+    {
+      "date": "2026-08-27",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "6:15–7:45"
+    },
+    {
+      "date": "2026-08-28",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "4:30–6:00"
+    },
+    {
+      "date": "2026-08-28",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "6:15–7:45"
+    },
+    {
+      "date": "2026-08-29",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "8:30–10:00"
+    },
+    {
+      "date": "2026-08-29",
+      "code": "PPBS",
+      "section": "BOTH",
+      "slot": "10:20–11:50"
     }
   ],
   "note": ""

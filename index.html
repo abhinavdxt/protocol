@@ -348,6 +348,98 @@ const dailyChecklist = [
   ]},
 ];
 
+function getAdjustedChecklist(plan) {
+  const adjusted = JSON.parse(JSON.stringify(dailyChecklist));
+  if (!plan) return adjusted;
+
+  const d = new Date();
+  const istTime = d.getTime() + (5.5 * 60 * 60 * 1000) + (d.getTimezoneOffset() * 60000);
+  const todayD = new Date(istTime);
+  const y = todayD.getFullYear();
+  const m = String(todayD.getMonth() + 1).padStart(2, "0");
+  const dd = String(todayD.getDate()).padStart(2, "0");
+  const todayStr = `${y}-${m}-${dd}`;
+
+  const todayEvents = [];
+  if (plan.exams) plan.exams.forEach(ex => { if (ex.date === todayStr) todayEvents.push(ex.time); });
+  if (plan.classes) plan.classes.forEach(c => { if (c.date === todayStr) todayEvents.push(c.slot); });
+
+  if (todayEvents.length === 0) return adjusted;
+
+  function parseTime(t) {
+    if (!t) return 9999;
+    const start = t.split("–")[0].split("-")[0].trim().toLowerCase();
+    let isPM = start.includes("pm");
+    let isAM = start.includes("am");
+    let clean = start.replace(/[^\d:]/g, "");
+    if (!clean) return 9999;
+    let parts = clean.split(":");
+    let h = parseInt(parts[0], 10);
+    let mins = parts[1] ? parseInt(parts[1], 10) : 0;
+    
+    if (!isPM && !isAM) {
+      if (h >= 1 && h <= 7) isPM = true;
+      if (h >= 8 && h <= 11) isAM = true;
+      if (h === 12) isPM = true;
+    }
+    
+    if (isPM && h !== 12) h += 12;
+    if (isAM && h === 12) h = 0;
+    return h * 60 + mins;
+  }
+
+  let earliestMorning = 9999;
+  let hasEveningConflict = false;
+
+  todayEvents.forEach(timeStr => {
+    const startMins = parseTime(timeStr);
+    if (startMins < 12 * 60 && startMins < earliestMorning) earliestMorning = startMins;
+    if (startMins >= 17.5 * 60 && startMins <= 20.5 * 60) hasEveningConflict = true;
+  });
+
+  if (earliestMorning < 8.5 * 60) {
+    const shiftMins = (8.5 * 60) - earliestMorning; 
+    adjusted.forEach(group => {
+      if (group.group === "Morning" || group.group === "Study & Afternoon") {
+        group.items.forEach(item => {
+           if (item.t && item.t !== "—" && item.t !== "") {
+              const itemMins = parseTime(item.t);
+              if (itemMins < 12 * 60) {
+                 let newMins = itemMins - shiftMins;
+                 if (newMins < 0) newMins += 24 * 60;
+                 let h = Math.floor(newMins / 60);
+                 let min = newMins % 60;
+                 let formattedH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                 item.t = `${formattedH}:${String(min).padStart(2, "0")}`;
+                 item.shifted = true;
+              }
+           }
+        });
+      }
+    });
+  }
+
+  if (hasEveningConflict) {
+    adjusted.forEach(group => {
+      if (group.group === "Evening") {
+        group.items.forEach(item => {
+           if (["cardio", "dance", "shake3"].includes(item.id)) {
+              const itemMins = parseTime(item.t);
+              let newMins = itemMins - 120;
+              let h = Math.floor(newMins / 60);
+              let min = newMins % 60;
+              let formattedH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+              item.t = `${formattedH}:${String(min).padStart(2, "0")}`;
+              item.shifted = true;
+           }
+        });
+      }
+    });
+  }
+
+  return adjusted;
+}
+
 const shoppingList = [
   { cat: "💊 Supplements", items: [
     { n: "Creatine Monohydrate", pick: "Any '100% Creatine Monohydrate' — Asitis/Fast&Up", p: "₹350-450",
@@ -520,7 +612,8 @@ function App(){
   const synced=window.__store.mode==="firebase";
 
   const allC={...checks,...wChecks};
-  const allI=dailyChecklist.flatMap(g=>g.items);
+  const activeChecklist = getAdjustedChecklist(plan);
+  const allI = activeChecklist.flatMap(g=>g.items);
   const done=allI.filter(i=>allC[i.id]).length;
   const pct=Math.round((done/allI.length)*100);
   const daysLeft=Math.max(0,Math.ceil((new Date("2026-09-28")-new Date())/86400000));
@@ -585,7 +678,7 @@ function App(){
         <div style={{height:5,background:c.s2,borderRadius:3,margin:"12px 16px 0",overflow:"hidden"}}><div style={{height:"100%",background:`linear-gradient(90deg,${c.ac},${c.gn})`,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
         <div style={{textAlign:"right",padding:"4px 16px 8px",fontSize:11,color:c.dm}}>{done}/{allI.length} — {pct}%</div>
 
-        {dailyChecklist.map(g=>(
+        {activeChecklist.map(g=>(
           <div key={g.group} style={{padding:"0 12px",marginBottom:10}}>
             <div style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:12,overflow:"hidden"}}>
               <div style={{padding:"8px 14px",background:c.s2,fontSize:11,fontWeight:700,letterSpacing:1.5,color:c.ac,textTransform:"uppercase"}}>{g.group}</div>
@@ -598,7 +691,7 @@ function App(){
                       <div style={{fontSize:13,color:on?c.dm:c.tx,textDecoration:on?"line-through":"none"}}>{item.label}</div>
                       {on && on.amount && <div style={{fontSize:10,color:c.ac,marginTop:2}}>{on.amount} {on.notes&&`— ${on.notes}`}</div>}
                     </div>
-                    {item.t&&<span style={{fontSize:11,color:c.dm,marginLeft:8,flexShrink:0}}>{item.t}</span>}
+                    {item.t && <span style={item.shifted ? {fontSize:11, color:c.or, fontWeight:"bold", marginLeft:8, flexShrink:0} : {fontSize:11, color:c.dm, marginLeft:8, flexShrink:0}}>{item.t}</span>}
                   </div>
                 );
               })}

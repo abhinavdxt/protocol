@@ -232,6 +232,100 @@ const timetableBlocks = [
   }
 ];
 
+function getAdjustedChecklist(plan) {
+  const adjusted = JSON.parse(JSON.stringify(timetableBlocks));
+  if (!plan) return adjusted;
+
+  const d = new Date();
+  const istTime = d.getTime() + (5.5 * 60 * 60 * 1000) + (d.getTimezoneOffset() * 60000);
+  const todayD = new Date(istTime);
+  const y = todayD.getFullYear();
+  const m = String(todayD.getMonth() + 1).padStart(2, "0");
+  const dd = String(todayD.getDate()).padStart(2, "0");
+  const todayStr = `${y}-${m}-${dd}`;
+
+  const todayEvents = [];
+  if (plan.exams) plan.exams.forEach(ex => { if (ex.date === todayStr) todayEvents.push(ex.time); });
+  if (plan.classes) plan.classes.forEach(c => { if (c.date === todayStr) todayEvents.push(c.slot); });
+
+  if (todayEvents.length === 0) return adjusted;
+
+  function parseTime(t) {
+    if (!t) return 9999;
+    const start = t.split("–")[0].split("-")[0].trim().toLowerCase();
+    let isPM = start.includes("pm");
+    let isAM = start.includes("am");
+    let clean = start.replace(/[^\d:]/g, "");
+    if (!clean) return 9999;
+    let parts = clean.split(":");
+    let h = parseInt(parts[0], 10);
+    let mins = parts[1] ? parseInt(parts[1], 10) : 0;
+    
+    if (!isPM && !isAM) {
+      if (h >= 1 && h <= 7) isPM = true;
+      if (h >= 8 && h <= 11) isAM = true;
+      if (h === 12) isPM = true;
+    }
+    
+    if (isPM && h !== 12) h += 12;
+    if (isAM && h === 12) h = 0;
+    return h * 60 + mins;
+  }
+
+  let earliestMorning = 9999;
+  let hasEveningConflict = false;
+
+  todayEvents.forEach(timeStr => {
+    const startMins = parseTime(timeStr);
+    if (startMins < 12 * 60 && startMins < earliestMorning) earliestMorning = startMins;
+    if (startMins >= 17.5 * 60 && startMins <= 20.5 * 60) hasEveningConflict = true;
+  });
+
+  if (earliestMorning < 8.5 * 60) {
+    const shiftMins = (8.5 * 60) - earliestMorning; 
+    adjusted.forEach(group => {
+      if (group.group === "☀️ Morning Routine" || group.group === "📖 Academic & Study Blocks (XLRI Term IV)") {
+        group.items.forEach(item => {
+           if (item.time && item.time !== "—" && item.time !== "") {
+              const itemMins = parseTime(item.time);
+              if (itemMins < 12 * 60) {
+                 let newMins = itemMins - shiftMins;
+                 if (newMins < 0) newMins += 24 * 60;
+                 let h = Math.floor(newMins / 60);
+                 let min = newMins % 60;
+                 let ampm = h >= 12 ? "PM" : "AM";
+                 let formattedH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                 item.time = `${formattedH}:${String(min).padStart(2, "0")} ${ampm}`;
+                 item.shifted = true;
+              }
+           }
+        });
+      }
+    });
+  }
+
+  if (hasEveningConflict) {
+    adjusted.forEach(group => {
+      if (group.group === "🌙 Evening Routine") {
+        group.items.forEach(item => {
+           if (["cardio", "dance", "meal3"].includes(item.id)) {
+              const itemMins = parseTime(item.time);
+              let newMins = itemMins - 120;
+              let h = Math.floor(newMins / 60);
+              let min = newMins % 60;
+              let ampm = h >= 12 ? "PM" : "AM";
+              let formattedH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+              item.time = `${formattedH}:${String(min).padStart(2, "0")} ${ampm}`;
+              item.shifted = true;
+           }
+        });
+      }
+    });
+  }
+
+  return adjusted;
+}
+
 // Daily Calorie & Nutrition Schedule (Total ~1,900 kcal target)
 const mealSchedule = [
   { id: "meal_bf", time: "8:10 AM", name: "Breakfast (Meal 1)", calories: 500, desc: "Eggs + Chicken/Paneer + Fresh Salad & Veggies" },
@@ -274,7 +368,8 @@ function App() {
   const toggleMeal = (id) => window.__store.toggleMeal(id);
 
   // Timetable progress
-  const allItems = timetableBlocks.flatMap((g) => g.items);
+  const activeChecklist = getAdjustedChecklist(plan);
+  const allItems = activeChecklist.flatMap((g) => g.items);
   const doneCount = allItems.filter((i) => checks[i.id]).length;
   const progressPct = Math.round((doneCount / allItems.length) * 100);
 
@@ -386,7 +481,7 @@ function App() {
               </div>
             )}
 
-            {timetableBlocks.map((group, gi) => (
+            {activeChecklist.map((group, gi) => (
               <div key={gi} style={{ marginBottom: 22 }}>
                 <div style={{ fontSize: 12, fontFamily: "Syne, sans-serif", fontWeight: 700, color: c.dm, letterSpacing: 0.5, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                   <span>{group.group}</span>
