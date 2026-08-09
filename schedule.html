@@ -499,10 +499,10 @@ function App() {
                           justifyContent: "space-between",
                           padding: "13px 15px",
                           borderRadius: 12,
-                          background: isDone ? "rgba(101,207,160,0.06)" : c.s1,
+                          background: isDone ? "rgba(101,207,160,0.12)" : "rgba(255,255,255,0.02)",
                           border: `1px solid ${isDone ? "rgba(101,207,160,0.3)" : c.br}`,
                           cursor: "pointer",
-                          transition: "all 0.15s ease",
+                          transition: "all 0.2s ease",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
@@ -524,16 +524,16 @@ function App() {
                           >
                             {isDone && "✓"}
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: isDone ? c.gn : c.tx, textDecoration: isDone ? "line-through" : "none" }}>
+                          <div style={{ minWidth: 0, textDecoration: isDone ? "line-through" : "none", opacity: isDone ? 0.8 : 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: isDone ? 600 : 500, color: isDone ? c.gn : c.tx }}>
                               {item.label}
                             </div>
                             {checks[item.id] && checks[item.id].amount ? (
-                                <div style={{ fontSize: 11, color: c.ac, marginTop: 2 }}>
+                                <div style={{ fontSize: 11, color: isDone ? c.gn : c.ac, marginTop: 2 }}>
                                   {checks[item.id].amount} {checks[item.id].notes && `— ${checks[item.id].notes}`}
                                 </div>
                             ) : (
-                                <div style={{ fontSize: 11, color: c.dm, marginTop: 2 }}>
+                                <div style={{ fontSize: 11, color: isDone ? c.gn : c.dm, marginTop: 2 }}>
                                   {item.desc}
                                 </div>
                             )}

@@ -579,7 +579,12 @@ const shoppingList = [
   ]},
 ];
 
-const c = { bg:"#06060a",s1:"#111118",s2:"#1a1a24",br:"#252535",tx:"#e4e4ec",dm:"#6e6e82",ac:"#b8f035",acd:"rgba(184,240,53,0.1)",rd:"#f05050",or:"#f0a030",gn:"#40c880" };
+const c = {
+  bg:"#0a0a0b", s1:"#111113", s2:"#18181b", br:"rgba(255,255,255,0.08)",
+  tx:"#f4f1ec", dm:"#9b9792", ac:"#d4f244", on:"rgba(212,242,68,0.06)",
+  or:"#f0b84a", ok: "#65cfa0", okBg: "rgba(101,207,160,0.12)",
+  badBg: "rgba(255,255,255,0.02)"
+};
 
 function Chk(){return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke={c.bg} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
 function Chev({open}){return <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{transform:open?"rotate(180deg)":"none",transition:"0.2s"}}><path d="M4 6L8 10L12 6" stroke={c.dm} strokeWidth="2" strokeLinecap="round"/></svg>}
@@ -607,7 +612,10 @@ function App(){
 
   const checks=st.checks||{};
   const wChecks=st.weekly||{};
-  const tog=(id)=>window.__store.toggleDaily(id);
+  const tog=(id, val=true)=>{
+    if(val === false) window.__store.toggleDaily(id, false);
+    else window.__store.toggleDaily(id, val);
+  };
   const togW=(id)=>window.__store.toggleWeekly(id);
   const synced=window.__store.mode==="firebase";
 
@@ -623,7 +631,7 @@ function App(){
       {/* Header */}
       <div style={{textAlign:"center",padding:"20px 16px 4px"}}>
         <div style={{fontSize:22,fontWeight:800,letterSpacing:-0.5}}>THE PROTOCOL</div>
-        <div style={{fontSize:10,marginTop:4,color:synced?c.gn:c.or,letterSpacing:0.5}}>
+        <div style={{fontSize:10,marginTop:4,color:synced?c.ok:c.or,letterSpacing:0.5}}>
           {synced?"● Synced across devices":"● Local only — add Firebase config to sync"}
         </div>
         <div style={{display:"flex",justifyContent:"center",gap:28,padding:"12px 0"}}>
@@ -641,12 +649,12 @@ function App(){
 
       {/* TODAY TAB */}
       {tab==="today"&&<div>
-        <div style={{background:c.acd,border:"1px solid rgba(184,240,53,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
-          <div style={{fontSize:18,fontWeight:800,color:c.ac}}>{today.day} — {today.focus}</div>
+        <div style={{background:c.okBg,border:"1px solid rgba(101,207,160,0.25)",borderRadius:12,padding:"14px 16px",margin:"12px",textAlign:"center"}}>
+          <div style={{fontSize:18,fontWeight:800,color:c.ok}}>{today.day} — {today.focus}</div>
           <div style={{fontSize:12,color:c.dm,marginTop:2}}>{today.tag}</div>
         </div>
 
-        {/* EXAM / STUDY-BLOCK PLAN (from plan.json, refreshed twice daily) */}
+        {/* EXAM / STUDY-BLOCK PLAN */}
         {plan&&(()=>{
           const du=(d)=>Math.ceil((new Date(d+"T00:00:00")-new Date(new Date().toDateString()))/86400000);
           const now=new Date();
@@ -657,15 +665,15 @@ function App(){
           const n=ex[0];const urgent=n.d<=2;
           return(<div style={{margin:"12px 12px 0"}}>
             {block&&<div style={{background:"rgba(64,200,128,0.1)",border:"1px solid rgba(64,200,128,0.35)",borderRadius:12,padding:"11px 14px",marginBottom:8}}>
-              <div style={{fontSize:11,fontWeight:700,color:c.gn,letterSpacing:0.5}}>📚 4-HOUR STUDY BLOCK TODAY</div>
+              <div style={{fontSize:11,fontWeight:700,color:c.ok,letterSpacing:0.5}}>📚 4-HOUR STUDY BLOCK TODAY</div>
               <div style={{fontSize:14,fontWeight:700,marginTop:3}}>{block.name}</div>
               <div style={{fontSize:12,color:c.tx,marginTop:1}}>{block.block}</div>
             </div>}
-            <div style={{background:urgent?"rgba(240,80,80,0.1)":c.acd,border:`1px solid ${urgent?"rgba(240,80,80,0.35)":"rgba(184,240,53,0.25)"}`,borderRadius:12,padding:"12px 14px"}}>
-              <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:urgent?c.rd:c.ac}}>{n.d===0?"⚠ Exam today":n.d===1?"⚠ Exam tomorrow":`Next exam · ${n.d} days`}</div>
+            <div style={{background:urgent?"rgba(240,80,80,0.1)":c.okBg,border:`1px solid ${urgent?"rgba(240,80,80,0.35)":"rgba(101,207,160,0.25)"}`,borderRadius:12,padding:"12px 14px"}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:urgent?"#f05050":c.ok}}>{n.d===0?"⚠ Exam today":n.d===1?"⚠ Exam tomorrow":`Next exam · ${n.d} days`}</div>
               <div style={{fontSize:16,fontWeight:800,marginTop:3}}>{n.name}</div>
               <div style={{fontSize:12,color:c.dm,marginTop:1}}>{n.dateLabel} · {n.time}</div>
-              <div style={{fontSize:12,color:urgent?c.or:c.ac,marginTop:6,fontWeight:600}}>Reserve 4h: {n.block}</div>
+              <div style={{fontSize:12,color:urgent?c.or:c.ok,marginTop:6,fontWeight:600}}>Reserve 4h: {n.block}</div>
             </div>
             {ex.length>1&&<div style={{padding:"8px 4px 0"}}>
               {ex.slice(1).map((e,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:c.dm,padding:"3px 2px"}}><span>{e.name}</span><span>{e.d}d · {e.dateLabel}</span></div>))}
@@ -675,21 +683,30 @@ function App(){
           </div>);
         })()}
 
-        <div style={{height:5,background:c.s2,borderRadius:3,margin:"12px 16px 0",overflow:"hidden"}}><div style={{height:"100%",background:`linear-gradient(90deg,${c.ac},${c.gn})`,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
+        <div style={{height:5,background:c.s2,borderRadius:3,margin:"12px 16px 0",overflow:"hidden"}}><div style={{height:"100%",background:c.ok,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
         <div style={{textAlign:"right",padding:"4px 16px 8px",fontSize:11,color:c.dm}}>{done}/{allI.length} — {pct}%</div>
 
         {activeChecklist.map(g=>(
           <div key={g.group} style={{padding:"0 12px",marginBottom:10}}>
             <div style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{padding:"8px 14px",background:c.s2,fontSize:11,fontWeight:700,letterSpacing:1.5,color:c.ac,textTransform:"uppercase"}}>{g.group}</div>
+              <div style={{padding:"8px 14px",background:c.s2,fontSize:11,fontWeight:700,letterSpacing:1.5,color:c.dm,textTransform:"uppercase"}}>{g.group}</div>
               {g.items.map(item=>{
-                const isW=item.id.startsWith("w");const on=isW?wChecks[item.id]:checks[item.id];const fn=isW?togW:tog;
+                const isW=item.id.startsWith("w");const on=isW?wChecks[item.id]:checks[item.id];
                 return(
-                  <div key={item.id} onClick={()=>setTrackModal({item, isW, on, fn})} style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:`1px solid ${c.br}`,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-                    <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?c.ac:c.br}`,background:on?c.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginRight:10}}>{on&&<Chk/>}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,color:on?c.dm:c.tx,textDecoration:on?"line-through":"none"}}>{item.label}</div>
-                      {on && on.amount && <div style={{fontSize:10,color:c.ac,marginTop:2}}>{on.amount} {on.notes&&`— ${on.notes}`}</div>}
+                  <div 
+                    key={item.id} 
+                    onClick={() => setTrackModal({item, isW, on, fn: isW ? togW : tog})}
+                    style={{
+                      display:"flex", alignItems:"center", padding:"12px 14px", borderBottom:`1px solid ${c.br}`,
+                      cursor:"pointer", background:on ? c.okBg : c.badBg, transition:"all 0.2s"
+                    }}
+                  >
+                    <div style={{width:20,height:20,borderRadius:6,border:`1px solid ${on ? c.ok : c.br}`,background:on ? c.ok : "transparent",marginRight:12,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {on && <span style={{color:c.bg,fontSize:14}}>✓</span>}
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,color:on ? c.ok : c.tx,textDecoration:on?"line-through":"none",fontWeight:on?600:400}}>{item.label}</div>
+                      {on && on.amount && <div style={{fontSize:10,color:c.ok,marginTop:2}}>{on.amount} {on.notes&&`— ${on.notes}`}</div>}
                     </div>
                     {item.t && <span style={item.shifted ? {fontSize:11, color:c.or, fontWeight:"bold", marginLeft:8, flexShrink:0} : {fontSize:11, color:c.dm, marginLeft:8, flexShrink:0}}>{item.t}</span>}
                   </div>
