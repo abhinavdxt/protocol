@@ -337,6 +337,23 @@ const mealSchedule = [
 
 const DAILY_CALORIE_TARGET = 1900;
 
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, errorInfo) { console.error("React Error:", error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 20, color: "red", background: "#06060a", minHeight: "100vh", fontFamily: "monospace" }}>
+          <h2>Partner View Crashed</h2>
+          <p>{this.state.error && this.state.error.toString()}</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   const [tab, setTab] = useState("timetable");
   const [st, setSt] = useState(null);
@@ -368,7 +385,7 @@ function App() {
 
   // Timetable progress
   const activeChecklist = getAdjustedChecklist(plan);
-  const allItems = activeChecklist.flatMap((g) => g.items);
+  const allItems = activeChecklist.reduce((acc, g) => acc.concat(g.items), []);
   const doneCount = allItems.filter((i) => checks[i.id]).length;
   const progressPct = Math.round((doneCount / allItems.length) * 100);
 
@@ -712,7 +729,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary><App /></ErrorBoundary>);
 </script>
 </body>
 </html>
