@@ -344,10 +344,9 @@ function App() {
 
   useEffect(() => window.__store.subscribe(setSt), []);
 
-  // Fetch real-time exam plan generated twice-daily by build-plan.js
   useEffect(() => {
     fetch("plan.json", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
+      .then(r => r.ok ? r.json() : null)
       .then(setPlan)
       .catch(() => {});
   }, []);
