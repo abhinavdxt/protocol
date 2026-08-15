@@ -350,6 +350,72 @@ const dailyChecklist = [
   ]},
 ];
 
+// Detailed step-by-step application method for checklist items that bundle
+// multiple products. Built from standard dermatological/cosmetic-science
+// practice for these ingredient classes (not brand-specific label text —
+// Amazon browsing was unavailable when this was written; the sequencing,
+// wait times and cautions below don't meaningfully vary by brand for these
+// categories, but re-verify against the physical label if anything here
+// ever conflicts with what's printed on a specific bottle).
+const PRODUCT_ROUTINES = {
+  skinam: { title: "Skincare AM", steps: [
+    { n: "1. Face Wash", how: "Lukewarm water (not hot — strips barrier). Massage in circular motions ~30-60s, rinse fully.", wait: "Pat dry, don't rub", note: "" },
+    { n: "2. Vitamin C Serum", how: "Apply to fully DRY skin — water dilutes/destabilizes L-ascorbic acid. 3-4 drops, press/pat in.", wait: "1-2 min to absorb before next step", note: "Keep bottle tightly capped, out of direct light/bathroom heat — L-AA oxidizes (turns yellow/brown) with heat+light+air. Discard if it visibly darkens." },
+    { n: "3. Sunscreen", how: "~1/4 tsp (2 finger-lengths) for face+neck. Rub in until no white residue. Don't skip neck/ears.", wait: "Ideally 15-20 min before sun exposure", note: "Reapply if outdoors midday for long stretches" },
+    { n: "4. Eye Cream", how: "Pea-sized amount total (both eyes). Dab with ring finger — lightest touch, don't drag/rub — around the orbital bone.", wait: "Pat until absorbed", note: "" },
+  ]},
+  skinpm: { title: "Skincare PM (non-active nights)", steps: [
+    { n: "1. Face Wash", how: "Same as AM. Removes the day's sunscreen/sweat/oil buildup.", wait: "Pat dry", note: "" },
+    { n: "2. Niacinamide", how: "Apply to dry skin, a few drops, press in (don't rub).", wait: "2-3 min — apply moisturizer too soon and it can 'pill'/ball up", note: "" },
+    { n: "3. Moisturizer", how: "Cover full face + neck.", wait: "—", note: "This is the routine for MOST nights. On Retinol nights or AHA/BHA nights, use the specific sequences below instead — don't stack all three active categories on the same night." },
+  ]},
+  retinolpm: { title: "Retinol Night (from Week 5+)", steps: [
+    { n: "1. Face Wash", how: "Same gentle wash as always.", wait: "Let skin dry FULLY — 20-30 min if possible. Applying retinol to damp skin increases penetration and irritation.", note: "" },
+    { n: "2. (Optional) Niacinamide", how: "Fine to keep on retinol nights if your skin is tolerating it well — skip it for the first 2-3 weeks of retinol to reduce total irritation load while your skin adjusts.", wait: "2-3 min if used", note: "" },
+    { n: "3. Retinol", how: "Pea-sized amount for the WHOLE face. Avoid the immediate eye area and corners of the mouth. Press in, don't rub.", wait: "~20 min before moisturizer", note: "First 4-6 weeks: consider the 'sandwich method' — moisturizer, then retinol, then moisturizer again — to buffer irritation while you build tolerance." },
+    { n: "4. Moisturizer", how: "Full face + neck, slightly more generous layer than usual on retinol nights.", wait: "—", note: "Never combine with Vit C (AM only) or on the same night as the AHA/BHA exfoliant — that combination is how people over-irritate and quit retinol in week 2." },
+  ]},
+  ahabhaPm: { title: "AHA/BHA Exfoliant Night (w1/w2 — 2x/week only)", steps: [
+    { n: "1. Face Wash", how: "Same gentle wash.", wait: "Let skin dry fully", note: "" },
+    { n: "2. AHA/BHA Serum", how: "Thin layer, avoid eye area. Don't layer other actives under it.", wait: "10-20 min for it to work before rinsing/moving on (check your specific product's instructions — 'peeling solutions' often specify a rinse-off time; leave-on exfoliants don't)", note: "Skip Niacinamide, Vit C, and Retinol entirely on this night — one active category only, this is a deliberately lighter routine night." },
+    { n: "3. Moisturizer", how: "Full face + neck — extra important tonight since exfoliation temporarily weakens the barrier.", wait: "—", note: "" },
+  ]},
+  minox: { title: "Scalp Serum + Minoxidil", steps: [
+    { n: "1. Scalp Serum (Salicylic Acid)", how: "Apply to dry scalp, focus on part-lines/thinning areas, massage in with fingertips.", wait: "10-15 min to unclog follicles before minoxidil", note: "" },
+    { n: "2. Minoxidil", how: "1ml (use the marked dropper/applicator) directly to dry scalp on thinning/crown areas. Spread with fingertips.", wait: "Let dry ~15-20 min before touching pillow/lying down", note: "⚠ Do NOT wash or wet your scalp for at least 4 hours after — washing too soon rinses it off before it's absorbed. Wash your hands thoroughly after applying (finasteride absorbs through skin contact)." },
+  ]},
+  shower: { title: "Shower + Hair Fibers + Hold", steps: [
+    { n: "1. Shampoo (wash days only)", how: "Gentle fingertip massage on scalp, not nails (protects your hairline). Rinse thoroughly.", wait: "Towel-dry by blotting, don't rub — wet hair is more fragile", note: "" },
+    { n: "2. Fully dry hair", how: "Air-dry or blow-dry on low heat until completely dry.", wait: "—", note: "Fibers stick to hair via static — any dampness stops them adhering properly. Don't skip this." },
+    { n: "3. Hair Fiber", how: "Sprinkle onto thinning/visible-scalp areas from ~15-20cm above. Pat/distribute gently with fingertips or the applicator pump.", wait: "—", note: "Less is more — overloading looks unnatural and sheds more." },
+    { n: "4. Gel/Hold Spray", how: "Small amount, work through with fingertips (not a comb — disturbs fiber placement).", wait: "—", note: "This locks the fibers in place — apply it AFTER fibers, never before. Humid days may need a midday touch-up." },
+  ]},
+  beard: { title: "Beard Oil + Brush", steps: [
+    { n: "1. Beard Oil", how: "2-4 drops (more for longer/denser beards) rubbed between palms first, then worked through beard from roots to tips — including the skin underneath, that's what prevents beardruff.", wait: "—", note: "Best applied to slightly damp beard, right after showering." },
+    { n: "2. Boar Bristle Brush", how: "Brush in the direction of growth to distribute the oil evenly and detangle.", wait: "—", note: "" },
+  ]},
+  body: { title: "Body Moisturize + Bio-Oil", steps: [
+    { n: "1. Apply within ~3 min of showering", how: "While skin is still slightly damp — this locks in more moisture than applying to bone-dry skin.", wait: "—", note: "" },
+    { n: "2. Bio-Oil / Cocoa Butter", how: "Focus on stomach/areas of concern. Massage in with firm circular motions.", wait: "—", note: "The massage motion itself may matter as much as the product — evidence for any topical preventing stretch marks is genuinely weak, this is a low-risk insurance step, not a guarantee." },
+  ]},
+  shake: { title: "Whey Shake + Creatine", steps: [
+    { n: "1. Whey", how: "1 scoop (~30g) with water or milk in a shaker. Shake vigorously 15-20s to avoid clumps.", wait: "Best within ~30 min of mixing (texture, not protein content, degrades)", note: "" },
+    { n: "2. Creatine", how: "5g — stir into the same shake or take separately with water.", wait: "—", note: "Timing doesn't matter much for creatine — consistency (same time daily) matters far more than exact timing." },
+  ]},
+  shake2: { title: "Post-Workout Whey", steps: [
+    { n: "Whey", how: "1 scoop (~30g) with water or milk, shaken well.", wait: "—", note: "" },
+  ]},
+  shake3: { title: "Evening Whey", steps: [
+    { n: "Whey", how: "1 scoop (~30g) with water or milk, shaken well.", wait: "—", note: "" },
+  ]},
+  casein: { title: "Casein (Before Bed)", steps: [
+    { n: "Casein", how: "1 scoop with slightly MORE liquid than your whey shakes — casein gels thicker, extra water/milk keeps it drinkable.", wait: "Drink ~30-45 min before actually lying down, not at the moment of sleep", note: "This is what covers your ~8-hour overnight fast — don't skip it even on days you're tired, it's doing different work than the whey shakes." },
+  ]},
+  hang: { title: "Dead Hangs (Rowing Bar)", steps: [
+    { n: "Setup", how: "Grip shoulder-width, relax shoulders DOWN away from ears — this is a passive hang for spinal decompression, not an active shoulder-engaged hang.", wait: "30-45s per set × 3 sets, rest 60-90s between", note: "Step down with control at the end — don't drop from height, that's how shoulders get tweaked." },
+  ]},
+};
+
 function getAdjustedChecklist(plan) {
   const adjusted = JSON.parse(JSON.stringify(dailyChecklist));
   if (!plan) return adjusted;
@@ -438,6 +504,50 @@ function getAdjustedChecklist(plan) {
       }
     });
   }
+
+  return adjusted;
+}
+
+// "Woke up late" reorganizer — a deterministic, on-device schedule
+// compressor. Not an LLM call: this is a rule-based shift-and-drop
+// algorithm, chosen deliberately over a live AI backend because this app
+// is a static site with no server, and the actual problem ("I'm N minutes
+// behind, adjust my morning") doesn't need open-ended reasoning to solve
+// well. Session-only — never persisted to the synced store.
+const LATE_DROP_PRIORITY = ["wimhof_am", "chin", "math", "hang", "dance"]; // lowest priority first
+function applyLateShift(checklist, lateMins) {
+  if (!lateMins || lateMins <= 0) return checklist;
+  const adjusted = JSON.parse(JSON.stringify(checklist));
+
+  function parseTime(t) {
+    if (!t || t === "—") return null;
+    const clean = t.replace(/[^\d:]/g, "");
+    if (!clean) return null;
+    const [h, m] = clean.split(":").map(Number);
+    return h * 60 + (m || 0);
+  }
+  function formatTime(mins) {
+    let h = Math.floor(mins / 60) % 24, m = mins % 60;
+    const disp = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+    return `${disp}:${String(m).padStart(2, "0")}`;
+  }
+
+  // Drop lowest-priority items first: one extra drop for every 20 min
+  // beyond the first 30 (which is absorbed by a straight shift instead).
+  const numToDrop = lateMins <= 30 ? 0 : Math.min(LATE_DROP_PRIORITY.length, 1 + Math.floor((lateMins - 30) / 20));
+  const dropIds = new Set(LATE_DROP_PRIORITY.slice(0, numToDrop));
+  const shiftMins = Math.min(lateMins, 30); // compress the rest into a 30-min-max shift once items start dropping
+
+  adjusted.forEach(group => {
+    if (group.group !== "Morning" && group.group !== "Study & Afternoon") return;
+    group.items.forEach(item => {
+      if (dropIds.has(item.id)) { item.lateDropped = true; return; }
+      const mins = parseTime(item.t);
+      if (mins === null) return;
+      item.t = formatTime(mins + shiftMins);
+      item.shifted = true;
+    });
+  });
 
   return adjusted;
 }
@@ -603,6 +713,9 @@ function App(){
   const[openEx,setOpenEx]=useState(null);
   const[openShop,setOpenShop]=useState(null);
   const[trackModal,setTrackModal]=useState(null);
+  const[routineModal,setRoutineModal]=useState(null);
+  const[lateModal,setLateModal]=useState(false);
+  const[lateMins,setLateMins]=useState(0);
 
   const[plan,setPlan]=useState(null);
   useEffect(()=>window.__store.subscribe(setSt),[]);
@@ -626,7 +739,7 @@ function App(){
   const synced=window.__store.mode==="firebase";
 
   const allC={...checks,...wChecks};
-  const activeChecklist = getAdjustedChecklist(plan);
+  const activeChecklist = applyLateShift(getAdjustedChecklist(plan), lateMins);
   const allI = activeChecklist.flatMap(g=>g.items);
   const done=allI.filter(i=>allC[i.id]).length;
   const pct=Math.round((done/allI.length)*100);
@@ -692,28 +805,49 @@ function App(){
         <div style={{height:5,background:c.s2,borderRadius:3,margin:"12px 16px 0",overflow:"hidden"}}><div style={{height:"100%",background:c.ok,borderRadius:3,width:`${pct}%`,transition:"width 0.3s"}}/></div>
         <div style={{textAlign:"right",padding:"4px 16px 8px",fontSize:11,color:c.dm}}>{done}/{allI.length} — {pct}%</div>
 
+        {lateMins>0
+          ? <div style={{margin:"0 12px 12px",background:"rgba(240,160,48,0.1)",border:"1px solid rgba(240,160,48,0.35)",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:12,color:c.or,fontWeight:700}}>⏰ Reorganized — {lateMins} min late today</div>
+              <div onClick={()=>setLateMins(0)} style={{fontSize:11,color:c.dm,textDecoration:"underline",cursor:"pointer"}}>Reset</div>
+            </div>
+          : <div style={{margin:"0 12px 12px",textAlign:"center"}}>
+              <div onClick={()=>setLateModal(true)} style={{display:"inline-block",fontSize:12,fontWeight:700,color:c.or,border:"1px solid rgba(240,160,48,0.35)",background:"rgba(240,160,48,0.08)",padding:"8px 16px",borderRadius:20,cursor:"pointer"}}>⏰ Woke up late? Reorganize today</div>
+            </div>}
+
         {activeChecklist.map(g=>(
           <div key={g.group} style={{padding:"0 12px",marginBottom:10}}>
             <div style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:12,overflow:"hidden"}}>
               <div style={{padding:"8px 14px",background:c.s2,fontSize:11,fontWeight:700,letterSpacing:1.5,color:c.dm,textTransform:"uppercase"}}>{g.group}</div>
               {g.items.map(item=>{
                 const isW=/^w\d+$/.test(item.id);const on=isW?wChecks[item.id]:checks[item.id];
+                const routineKey = (item.id==="w1"||item.id==="w2") ? "ahabhaPm" : item.id;
+                const hasRoutine = !!PRODUCT_ROUTINES[routineKey];
+                if (item.lateDropped) {
+                  return (
+                    <div key={item.id} style={{display:"flex",alignItems:"center",padding:"12px 14px",borderBottom:`1px solid ${c.br}`,opacity:0.5}}>
+                      <div style={{width:20,height:20,borderRadius:6,border:`1px solid ${c.br}`,marginRight:12,flexShrink:0}}/>
+                      <div style={{flex:1,fontSize:13,color:c.dm,textDecoration:"line-through"}}>{item.label}</div>
+                      <span style={{fontSize:10,color:c.or,fontWeight:700,marginLeft:8,flexShrink:0}}>SKIPPED — running late</span>
+                    </div>
+                  );
+                }
                 return(
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     onClick={() => setTrackModal({item, isW, on, fn: isW ? togW : tog})}
                     style={{
                       display:"flex", alignItems:"center", padding:"12px 14px", borderBottom:`1px solid ${c.br}`,
                       cursor:"pointer", background:on ? c.okBg : c.badBg, transition:"all 0.2s"
                     }}
                   >
-                    <div style={{width:20,height:20,borderRadius:6,border:`1px solid ${on ? c.ok : c.br}`,background:on ? c.ok : "transparent",marginRight:12,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <div style={{width:20,height:20,borderRadius:6,border:`1px solid ${on ? c.ok : c.br}`,background:on ? c.ok : "transparent",marginRight:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       {on && <span style={{color:c.bg,fontSize:14}}>✓</span>}
                     </div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,color:on ? c.ok : c.tx,textDecoration:on?"line-through":"none",fontWeight:on?600:400}}>{item.label}</div>
                       {on && on.amount && <div style={{fontSize:10,color:c.ok,marginTop:2}}>{on.amount} {on.notes&&`— ${on.notes}`}</div>}
                     </div>
+                    {hasRoutine && <span onClick={(e)=>{e.stopPropagation();setRoutineModal(routineKey);}} style={{fontSize:14,marginLeft:8,flexShrink:0,color:c.ac,cursor:"pointer",padding:"2px 6px"}}>ⓘ</span>}
                     {item.t && <span style={item.shifted ? {fontSize:11, color:c.or, fontWeight:"bold", marginLeft:8, flexShrink:0} : {fontSize:11, color:c.dm, marginLeft:8, flexShrink:0}}>{item.t}</span>}
                   </div>
                 );
@@ -886,6 +1020,50 @@ function App(){
           </div>
         );
       })()}
+
+      {routineModal&&(()=>{
+        const r = PRODUCT_ROUTINES[routineModal];
+        const extra = routineModal==="skinpm" ? [PRODUCT_ROUTINES.retinolpm, PRODUCT_ROUTINES.ahabhaPm] : [];
+        const sections = [r, ...extra];
+        return(
+          <div onClick={()=>setRoutineModal(null)} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.8)",zIndex:999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+            <div onClick={(e)=>e.stopPropagation()} style={{background:c.s2,width:"100%",maxWidth:500,maxHeight:"80vh",overflowY:"auto",borderTopLeftRadius:20,borderTopRightRadius:20,padding:"20px",borderTop:`1px solid ${c.br}`}}>
+              {sections.map((sec,si)=>(
+                <div key={si} style={{marginBottom:si<sections.length-1?24:0}}>
+                  <div style={{fontSize:12,color:c.ac,letterSpacing:1,textTransform:"uppercase",fontWeight:700,marginBottom:12}}>{sec.title}</div>
+                  {sec.steps.map((s,i)=>(
+                    <div key={i} style={{background:c.s1,border:`1px solid ${c.br}`,borderRadius:10,padding:"12px 14px",marginBottom:8}}>
+                      <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{s.n}</div>
+                      <div style={{fontSize:12,color:c.tx,lineHeight:1.5}}>{s.how}</div>
+                      {s.wait && s.wait!=="—" && <div style={{fontSize:11,color:c.or,marginTop:6,fontWeight:600}}>⏱ {s.wait}</div>}
+                      {s.note && <div style={{fontSize:11,color:c.dm,marginTop:6,lineHeight:1.5,fontStyle:"italic"}}>{s.note}</div>}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <button onClick={()=>setRoutineModal(null)} style={{width:"100%",padding:"14px",background:c.s1,border:`1px solid ${c.br}`,color:c.tx,borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",marginTop:8}}>Close</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {lateModal&&(
+        <div onClick={()=>setLateModal(false)} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.8)",zIndex:999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div onClick={(e)=>e.stopPropagation()} style={{background:c.s2,width:"100%",maxWidth:500,borderTopLeftRadius:20,borderTopRightRadius:20,padding:"20px",borderTop:`1px solid ${c.br}`}}>
+            <div style={{fontSize:12,color:c.or,letterSpacing:1,textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Reorganize Today</div>
+            <div style={{fontSize:13,color:c.dm,marginBottom:16,lineHeight:1.5}}>How many minutes behind schedule are you? Morning items shift later; if you're badly behind, the lowest-priority items (breathing, chin tucks, mental math, dead hangs, dance) get skipped first to protect your workout, meals, and study blocks.</div>
+            <input id="late-mins" type="number" placeholder="e.g. 45" style={{width:"100%",background:c.bg,border:`1px solid ${c.br}`,color:c.tx,padding:"12px",borderRadius:8,fontSize:14,marginBottom:16}} />
+            <div style={{display:"flex",gap:12}}>
+              <button onClick={()=>setLateModal(false)} style={{flex:1,padding:"14px",background:c.s1,border:`1px solid ${c.br}`,color:c.tx,borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>{
+                const v = parseInt(document.getElementById("late-mins").value, 10);
+                setLateMins(v && v>0 ? v : 0);
+                setLateModal(false);
+              }} style={{flex:2,padding:"14px",background:c.or,border:"none",color:c.bg,borderRadius:8,fontSize:14,fontWeight:800,cursor:"pointer"}}>Reorganize</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{textAlign:"center",padding:"24px 0",fontSize:10,color:c.dm,letterSpacing:2,textTransform:"uppercase"}}>
         100.4 → 86 — <span style={{color:c.ac}}>The Protocol</span>
